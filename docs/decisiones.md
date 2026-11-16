@@ -30,12 +30,18 @@
 | D-22 | La fila de `existencias` la crea el servicio de inventario (Fase 4) | Una restricción de base de datos no puede hacerlo por cada consumible nuevo |
 | D-23 | `laravel_user` es `db_owner` y podría saltarse el trigger | Aceptable en desarrollo; en la Fase 8 se usa un usuario con permisos limitados |
 | D-24 | Los datos de prueba solo se siembran en entorno `local` | Evita datos ficticios y claves de desarrollo en un despliegue |
-
+#	Decisión	Motivo / nota
+|D-25	|Zona horaria America/La_Paz en config/app.php	Coherencia con GETDATE() de SQL Server y la hora local
+|D-26	|Autenticación propia y mínima, sin paquetes (sin Breeze)	Regla 18; los kits traen frontend distinto de Bootstrap
+|D-27	|Permisos por rol con Gates, definidos en Permisos.php	Cuatro roles fijos; sin paquete de permisos
+|D-28	|Mensajes de validación en español dentro de cada Form Request	Laravel 12 no trae lang/es
+|D-29	|Pruebas contra la base laravel_test, con seguro en TestCase	Las pruebas reconstruyen la base; SQLite no soporta nuestras migraciones
+|D-30	|Inicio de sesión: 5 intentos, bloqueo de 5 minutos; usuario inactivo recibe el mismo mensaje que clave incorrecta	No revelar qué cuentas existen
 ## Pendientes
 
 - Autenticación de la API de monitoreo (decidir en la Fase 5).
 - Nombre de la base de datos: hoy `laravel`; considerar un nombre propio del proyecto.
-- Herramienta de pago de HP a sustituir (antes de la Fase 3).
+- Herramienta actual: HP Web Jetadmin. Áreas candidatas indicadas para revisar: inventario y descubrimiento, estado y disponibilidad, consumibles y contadores, alertas, configuración remota, informes e historial, firmware y actualizaciones. No confirmadas como alcance; revisar el uso real antes de definir la Fase 3.
 - Confirmar D-19 (proveedor obligatorio en compras).
 - Versión de Laragon en `instalacion.md`.
 - Identidad de Git: revisar el correo configurado automáticamente.

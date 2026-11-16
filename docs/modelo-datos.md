@@ -1,6 +1,6 @@
-# SGIIC — Modelo de datos (Fase 2, propuesta v1)
+# SGIIC — Modelo de datos (Fase 2, propuesta v1 histórica)
 
-Estado: pendiente de aprobación. No se ha creado ninguna migración.
+Estado: propuesta inicial; no es la referencia del esquema vigente. El esquema implementado y verificado se documenta en [diagrama-er.md](./diagrama-er.md).
 Motor: SQL Server, collation `Modern_Spanish_CI_AS`. Nombres de tablas, columnas y modelos en español.
 
 ## Convenciones

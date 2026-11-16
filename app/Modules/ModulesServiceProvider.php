@@ -2,6 +2,7 @@
 
 namespace App\Modules;
 
+use App\Modules\Access\Models\Permisos;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +23,8 @@ class ModulesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Permisos::registrar();
+
         foreach ($this->modules as $module) {
             $routes = __DIR__ . "/{$module}/routes.php";
 
