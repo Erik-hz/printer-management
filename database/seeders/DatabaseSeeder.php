@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             CatalogoImpresorasSeeder::class,
             TiposConsumibleSeeder::class,
             MotivosSinLecturaSeeder::class,
+            DatosPruebaSeeder::class,
         ]);
     }
 }
