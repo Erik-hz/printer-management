@@ -207,11 +207,12 @@ class DatosPruebaSeeder extends Seeder
                 $lectura2->niveles()->create(['tipo_consumible_id' => $toner->id, 'color' => $color, 'nivel' => $nivel]);
             }
 
-            // Lectura sin contador (caso de la regla 12): solo nivel.
+            // Lectura sin contador, pero con motivo válido para cumplir la regla de negocio.
             $lectura3 = Lectura::create([
                 'impresora_id' => $p4->id,
                 'fecha_lectura' => now()->subDay(),
                 'origen' => 'snmp',
+                'motivo_sin_lectura_id' => MotivoSinLectura::where('nombre', 'descuento')->firstOrFail()->id,
             ]);
             $lectura3->niveles()->create(['tipo_consumible_id' => $plotter->id, 'color' => 'negro', 'nivel' => 0.50]);
 

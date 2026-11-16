@@ -15,16 +15,17 @@ class MonitoringSchemaTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_reading_requires_a_counter_or_a_reason_but_not_both(): void
+    public function test_reading_allows_null_counter_and_reason_when_it_only_has_levels(): void
     {
         $fixture = $this->crearBase();
 
-        $this->expectException(QueryException::class);
-
-        $this->insertarLectura($fixture, [
+        $id = $this->insertarLectura($fixture, [
             'contador_paginas' => null,
             'motivo_sin_lectura_id' => null,
         ]);
+
+        $this->assertNotNull($id);
+        $this->assertDatabaseHas('lecturas', ['id' => $id]);
     }
 
     public function test_reading_rejects_a_negative_counter(): void

@@ -23,6 +23,17 @@
                             </li>
                         @endcan
                     @endif
+                    @can('ver-impresoras')
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle @if (request()->routeIs('zonas.*', 'lugares.*', 'areas.*', 'marcas.*', 'modelos.*')) active @endif"
+                               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Catálogos</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('zonas.index') }}">Ubicaciones</a></li>
+                                <li><a class="dropdown-item" href="{{ route('marcas.index') }}">Marcas</a></li>
+                                <li><a class="dropdown-item" href="{{ route('modelos.index') }}">Modelos de impresora</a></li>
+                            </ul>
+                        </li>
+                    @endcan
                 </ul>
 
                 <div class="dropdown">
@@ -52,6 +63,16 @@
     <main class="container py-4">
         @if (session('estado'))
             <div class="alert alert-success" role="alert">{{ session('estado') }}</div>
+        @endif
+
+        @if ($errors->any())
+            <div class="alert alert-danger" role="alert">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
         @endif
 
         @yield('contenido')

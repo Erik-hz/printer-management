@@ -43,15 +43,8 @@ return new class extends Migration
         DB::statement(
             'ALTER TABLE lecturas ADD CONSTRAINT ck_lecturas_contador_motivo
              CHECK (
-                (
-                    contador_paginas IS NOT NULL
-                    AND contador_paginas >= 0
-                    AND motivo_sin_lectura_id IS NULL
-                )
-                OR (
-                    contador_paginas IS NULL
-                    AND motivo_sin_lectura_id IS NOT NULL
-                )
+                (contador_paginas IS NULL OR contador_paginas >= 0)
+                AND (motivo_sin_lectura_id IS NULL OR contador_paginas IS NULL)
              )'
         );
         DB::statement(

@@ -2,14 +2,26 @@
 
 namespace App\Modules\Printers\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Modules\Inventory\Models\Consumible;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ModeloImpresora extends Model
 {
+    public const TIPOS_IMPRESION = [
+        'mono' => 'Monocromática',
+        'color' => 'Color',
+    ];
+
+    public const TECNOLOGIAS = [
+        'laser' => 'Láser',
+        'tinta' => 'Tinta',
+        'plotter' => 'Plotter',
+        'otra' => 'Otra',
+    ];
+
     protected $table = 'modelos_impresora';
 
     protected $fillable = [
@@ -34,6 +46,7 @@ class ModeloImpresora extends Model
     {
         return $this->hasMany(Impresora::class, 'modelo_id');
     }
+
     public function consumibles(): BelongsToMany
     {
         return $this->belongsToMany(

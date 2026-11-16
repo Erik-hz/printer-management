@@ -4,6 +4,7 @@ namespace App\Modules\Printers\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Area extends Model
 {
@@ -19,5 +20,10 @@ class Area extends Model
     public function lugar(): BelongsTo
     {
         return $this->belongsTo(Lugar::class, 'lugar_id');
+    }
+
+    public function impresoras(): HasMany
+    {
+        return $this->hasMany(Impresora::class, 'area_id');
     }
 }

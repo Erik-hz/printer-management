@@ -37,6 +37,15 @@
 |D-28	|Mensajes de validación en español dentro de cada Form Request	Laravel 12 no trae lang/es
 |D-29	|Pruebas contra la base laravel_test, con seguro en TestCase	Las pruebas reconstruyen la base; SQLite no soporta nuestras migraciones
 |D-30	|Inicio de sesión: 5 intentos, bloqueo de 5 minutos; usuario inactivo recibe el mismo mensaje que clave incorrecta	No revelar qué cuentas existen
+#	Decisión	Motivo / nota
+|D-31	|Bootstrap 5.3 empaquetado con Vite e importado como CSS compilado, sin Sass	Regla 18; funciona sin internet
+|D-32	|Tailwind eliminado del proyecto	El frontend usa Bootstrap
+|D-33	|Las pruebas desactivan Vite	No dependen de que Node haya compilado los estilos
+#	Decisión	Motivo / nota
+|D-34	|Permisos aplicados con el middleware can: en las rutas	El controlador base de Laravel 12 no trae authorize()
+|D-35	|Un registro de catálogo solo se elimina si nada depende de él; las impresoras con borrado lógico cuentan como dependencia	La base de datos las sigue referenciando
+|D-36	|Errores de validación en una alerta global del layout	Una sola pieza de interfaz para todas las pantallas
+|D-37	|Edición en línea en las tablas de catálogos con campos form=	Evita pantallas separadas para registros de un solo campo
 ## Pendientes
 
 - Autenticación de la API de monitoreo (decidir en la Fase 5).
