@@ -2,8 +2,11 @@
 
 namespace App\Modules\Printers\Models;
 
+use App\Modules\Inventory\Models\MovimientoInventario;
+use App\Modules\Monitoring\Models\Lectura;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Impresora extends Model
@@ -37,6 +40,16 @@ class Impresora extends Model
     public function estado(): BelongsTo
     {
         return $this->belongsTo(EstadoImpresora::class, 'estado_id');
+    }
+
+    public function movimientosInventario(): HasMany
+    {
+        return $this->hasMany(MovimientoInventario::class, 'impresora_id');
+    }
+
+    public function lecturas(): HasMany
+    {
+        return $this->hasMany(Lectura::class, 'impresora_id');
     }
 
     public function esDeRed(): bool

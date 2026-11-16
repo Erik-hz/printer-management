@@ -3,6 +3,8 @@
 namespace App\Modules\Printers\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Modules\Inventory\Models\Consumible;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -31,5 +33,14 @@ class ModeloImpresora extends Model
     public function impresoras(): HasMany
     {
         return $this->hasMany(Impresora::class, 'modelo_id');
+    }
+    public function consumibles(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Consumible::class,
+            'modelo_consumible',
+            'modelo_id',
+            'consumible_id'
+        );
     }
 }

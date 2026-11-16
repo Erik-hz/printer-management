@@ -3,6 +3,7 @@
 namespace App\Modules\Imports\Models;
 
 use App\Models\User;
+use App\Modules\Monitoring\Models\Lectura;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -39,5 +40,10 @@ class Importacion extends Model
     public function errores(): HasMany
     {
         return $this->hasMany(ErrorImportacion::class, 'importacion_id');
+    }
+
+    public function lecturas(): HasMany
+    {
+        return $this->hasMany(Lectura::class, 'importacion_id');
     }
 }

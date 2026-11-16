@@ -12,6 +12,8 @@ class DatabaseSeeder extends Seeder
             RolSeeder::class,
             UsuarioAdminSeeder::class,
             CatalogoImpresorasSeeder::class,
+            TiposConsumibleSeeder::class,
+            MotivosSinLecturaSeeder::class,
         ]);
     }
 }
