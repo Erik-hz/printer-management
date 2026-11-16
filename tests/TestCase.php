@@ -24,4 +24,12 @@ abstract class TestCase extends BaseTestCase
 
         return $app;
     }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Las pruebas no necesitan los estilos compilados por Vite.
+        $this->withoutVite();
+    }
 }
