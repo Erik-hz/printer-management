@@ -34,6 +34,12 @@
                             </ul>
                         </li>
                     @endcan
+                    @can('gestionar-usuarios')
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('usuarios.*')) active @endif"
+                               href="{{ route('usuarios.index') }}">Usuarios</a>
+                        </li>
+                    @endcan
                 </ul>
 
                 <div class="dropdown">
@@ -47,7 +53,7 @@
                                 Rol: {{ ucfirst(str_replace('_', ' ', auth()->user()->rol->nombre)) }}
                             </span>
                         </li>
-                        <li><hr class="dropdown-divider"></li>
+                        <li><li><a class="dropdown-item" href="{{ route('perfil.clave') }}">Cambiar contraseña</a></li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf

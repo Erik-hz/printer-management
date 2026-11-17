@@ -52,6 +52,17 @@
 |D-40	|Red/USB se valida en el formulario y en la base de datos (CHECK e índices filtrados); el servicio traduce los errores de unicidad	Doble defensa ante carreras de concurrencia
 |D-41|	Paginación con las vistas de Bootstrap 5	Tailwind se eliminó en D-32
 |D-42	|Un script mínimo en el formulario alterna los campos IP y equipo según el tipo de conexión	Sin Livewire (D-08); el servidor valida igual
+#	Decisión	Motivo / nota
+D-43	pdo_sqlsrv devuelve como texto los enteros que no son clave primaria; las pruebas castean con (int) y las vistas comparan por id	Eloquent solo convierte la clave primaria; no se activó la conversión global del driver para no alterar otros tipos
+D-44	Contraseñas: mínimo 10 caracteres, con una letra y un número, definidas en ReglasClave	Política en un solo lugar
+D-45	Los usuarios no se eliminan, se desactivan	Movimientos, compras y lecturas los referencian
+D-46	Middleware UsuarioActivo en el grupo web	Un usuario desactivado pierde el acceso con la sesión abierta
+D-47	El último administrador activo no se puede desactivar ni cambiar de rol; la comprobación no usa bloqueos	Riesgo de carrera aceptado con pocos administradores
+D-48	El administrador restablece las contraseñas; la recuperación por correo queda para la segunda etapa	Sin integración con correo en esta etapa
+#	Decisión	Motivo / nota
+D-49	Índices explícitos en las claves foráneas de impresoras y en modelo_consumible.consumible_id	SQL Server no los crea solo
+D-50	Una prueba recorre todas las rutas con auth y exige redirección al login para invitados	Cubre las rutas de fases futuras sin escribir pruebas nuevas
+D-51	Una prueba exige que las consultas del listado no crezcan con las filas	Detecta N+1 antes de que importe
 ## Pendientes
 
 - Autenticación de la API de monitoreo (decidir en la Fase 5).
