@@ -30,39 +30,33 @@
 | D-22 | La fila de `existencias` la crea el servicio de inventario (Fase 4) | Una restricción de base de datos no puede hacerlo por cada consumible nuevo |
 | D-23 | `laravel_user` es `db_owner` y podría saltarse el trigger | Aceptable en desarrollo; en la Fase 8 se usa un usuario con permisos limitados |
 | D-24 | Los datos de prueba solo se siembran en entorno `local` | Evita datos ficticios y claves de desarrollo en un despliegue |
-#	Decisión	Motivo / nota
-|D-25	|Zona horaria America/La_Paz en config/app.php	Coherencia con GETDATE() de SQL Server y la hora local
-|D-26	|Autenticación propia y mínima, sin paquetes (sin Breeze)	Regla 18; los kits traen frontend distinto de Bootstrap
-|D-27	|Permisos por rol con Gates, definidos en Permisos.php	Cuatro roles fijos; sin paquete de permisos
-|D-28	|Mensajes de validación en español dentro de cada Form Request	Laravel 12 no trae lang/es
-|D-29	|Pruebas contra la base laravel_test, con seguro en TestCase	Las pruebas reconstruyen la base; SQLite no soporta nuestras migraciones
-|D-30	|Inicio de sesión: 5 intentos, bloqueo de 5 minutos; usuario inactivo recibe el mismo mensaje que clave incorrecta	No revelar qué cuentas existen
-#	Decisión	Motivo / nota
-|D-31	|Bootstrap 5.3 empaquetado con Vite e importado como CSS compilado, sin Sass	Regla 18; funciona sin internet
-|D-32	|Tailwind eliminado del proyecto	El frontend usa Bootstrap
-|D-33	|Las pruebas desactivan Vite	No dependen de que Node haya compilado los estilos
-#	Decisión	Motivo / nota
-|D-34	|Permisos aplicados con el middleware can: en las rutas	El controlador base de Laravel 12 no trae authorize()
-|D-35	|Un registro de catálogo solo se elimina si nada depende de él; las impresoras con borrado lógico cuentan como dependencia	La base de datos las sigue referenciando
-|D-36	|Errores de validación en una alerta global del layout	Una sola pieza de interfaz para todas las pantallas
-|D-37	|Edición en línea en las tablas de catálogos con campos form=	Evita pantallas separadas para registros de un solo campo
-#	Decisión	Motivo / nota
-|D-38	|La IP se normaliza (ceros a la izquierda) antes de validar y guardar, con la clase DireccionIp	El Excel trae valores como 172.20.015.25; la importación la reutilizará
-|D-39	|Retirar (estado retirada) y eliminar (borrado lógico) son acciones distintas	Una impresora retirada conserva su historial; eliminar es solo para corregir errores de carga
-|D-40	|Red/USB se valida en el formulario y en la base de datos (CHECK e índices filtrados); el servicio traduce los errores de unicidad	Doble defensa ante carreras de concurrencia
-|D-41|	Paginación con las vistas de Bootstrap 5	Tailwind se eliminó en D-32
-|D-42	|Un script mínimo en el formulario alterna los campos IP y equipo según el tipo de conexión	Sin Livewire (D-08); el servidor valida igual
-#	Decisión	Motivo / nota
-D-43	pdo_sqlsrv devuelve como texto los enteros que no son clave primaria; las pruebas castean con (int) y las vistas comparan por id	Eloquent solo convierte la clave primaria; no se activó la conversión global del driver para no alterar otros tipos
-D-44	Contraseñas: mínimo 10 caracteres, con una letra y un número, definidas en ReglasClave	Política en un solo lugar
-D-45	Los usuarios no se eliminan, se desactivan	Movimientos, compras y lecturas los referencian
-D-46	Middleware UsuarioActivo en el grupo web	Un usuario desactivado pierde el acceso con la sesión abierta
-D-47	El último administrador activo no se puede desactivar ni cambiar de rol; la comprobación no usa bloqueos	Riesgo de carrera aceptado con pocos administradores
-D-48	El administrador restablece las contraseñas; la recuperación por correo queda para la segunda etapa	Sin integración con correo en esta etapa
-#	Decisión	Motivo / nota
-D-49	Índices explícitos en las claves foráneas de impresoras y en modelo_consumible.consumible_id	SQL Server no los crea solo
-D-50	Una prueba recorre todas las rutas con auth y exige redirección al login para invitados	Cubre las rutas de fases futuras sin escribir pruebas nuevas
-D-51	Una prueba exige que las consultas del listado no crezcan con las filas	Detecta N+1 antes de que importe
+| D-25 |Zona horaria America/La_Paz en config/app.php	Coherencia con GETDATE() de SQL Server y la hora local
+| D-26 |Autenticación propia y mínima, sin paquetes (sin Breeze)	Regla 18; los kits traen frontend distinto de Bootstrap
+| D-27	|Permisos por rol con Gates, definidos en Permisos.php	Cuatro roles fijos; sin paquete de permisos
+| D-28	|Mensajes de validación en español dentro de cada Form Request	Laravel 12 no trae lang/es
+| D-29	|Pruebas contra la base laravel_test, con seguro en TestCase	Las pruebas reconstruyen la base; SQLite no soporta nuestras migraciones
+| D-30	|Inicio de sesión: 5 intentos, bloqueo de 5 minutos; usuario inactivo recibe el mismo mensaje que clave incorrecta	No revelar qué cuentas existen
+| D-31	|Bootstrap 5.3 empaquetado con Vite e importado como CSS compilado, sin Sass	Regla 18; funciona sin internet
+| D-32	|Tailwind eliminado del proyecto	El frontend usa Bootstrap
+| D-33	|Las pruebas desactivan Vite	No dependen de que Node haya compilado los estilos
+| D-34	|Permisos aplicados con el middleware can: en las rutas	El controlador base de Laravel 12 no trae authorize()
+| D-35	|Un registro de catálogo solo se elimina si nada depende de él; las impresoras con borrado lógico cuentan como dependencia	La base de datos las sigue referenciando
+| D-36	|Errores de validación en una alerta global del layout	Una sola pieza de interfaz para todas las pantallas
+| D-37	|Edición en línea en las tablas de catálogos con campos form=	Evita pantallas separadas para registros de un solo campo
+| D-38	|La IP se normaliza (ceros a la izquierda) antes de validar y guardar, con la clase DireccionIp	El Excel trae valores como 172.20.015.25; la importación la reutilizará
+| D-39	|Retirar (estado retirada) y eliminar (borrado lógico) son acciones distintas	Una impresora retirada conserva su historial; eliminar es solo para corregir errores de carga
+| D-40	|Red/USB se valida en el formulario y en la base de datos (CHECK e índices filtrados); el servicio traduce los errores de unicidad	Doble defensa ante carreras de concurrencia
+| D-41|	Paginación con las vistas de Bootstrap 5	Tailwind se eliminó en D-32
+| D-42	|Un script mínimo en el formulario alterna los campos IP y equipo según el tipo de conexión	Sin Livewire (D-08); el servidor valida igual
+| D-43	|pdo_sqlsrv devuelve como texto los enteros que no son clave primaria; las pruebas castean con (int) y las vistas comparan por id	Eloquent solo convierte la clave primaria; no se activó la conversión global del driver para no alterar otros tipos
+D-44	|Contraseñas: mínimo 10 caracteres, con una letra y un número, definidas en ReglasClave	Política en un solo lugar
+| D-45	|Los usuarios no se eliminan, se desactivan	Movimientos, compras y lecturas los referencian
+| D-46	|Middleware UsuarioActivo en el grupo web	Un usuario desactivado pierde el acceso con la sesión abierta
+| D-47	|El último administrador activo no se puede desactivar ni cambiar de rol; la comprobación no usa bloqueos	Riesgo de carrera aceptado con pocos administradores
+| D-48	|El administrador restablece las contraseñas; la recuperación por correo queda para la segunda etapa	Sin integración con correo en esta etapa
+| D-49	|Índices explícitos en las claves foráneas de impresoras y en modelo_consumible.consumible_id	SQL Server no los crea solo
+| D-50	|Una prueba recorre todas las rutas con auth y exige redirección al login para invitados	Cubre las rutas de fases futuras sin escribir pruebas nuevas
+| D-51	|Una prueba exige que las consultas del listado no crezcan con las filas	Detecta N+1 antes de que importe
 ## Pendientes
 
 - Autenticación de la API de monitoreo (decidir en la Fase 5).
