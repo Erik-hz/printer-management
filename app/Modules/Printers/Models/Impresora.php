@@ -15,6 +15,12 @@ class Impresora extends Model
 
     protected $table = 'impresoras';
 
+    protected $casts = [
+        'modelo_id' => 'integer',
+        'area_id' => 'integer',
+        'estado_id' => 'integer',
+    ];
+
     protected $fillable = [
         'nombre',
         'modelo_id',

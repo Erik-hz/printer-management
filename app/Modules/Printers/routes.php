@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Printers\Http\Controllers\AreaController;
+use App\Modules\Printers\Http\Controllers\ImpresoraController;
 use App\Modules\Printers\Http\Controllers\LugarController;
 use App\Modules\Printers\Http\Controllers\MarcaController;
 use App\Modules\Printers\Http\Controllers\ModeloImpresoraController;
@@ -9,11 +10,23 @@ use Illuminate\Support\Facades\Route;
 
 // Consulta: cualquier rol activo.
 Route::middleware(['auth', 'can:ver-impresoras'])->group(function () {
+    Route::get('/impresoras', [ImpresoraController::class, 'index'])->name('impresoras.index');
+
     Route::get('/zonas', [ZonaController::class, 'index'])->name('zonas.index');
     Route::get('/zonas/{zona}/lugares', [LugarController::class, 'index'])->name('lugares.index');
     Route::get('/lugares/{lugar}/areas', [AreaController::class, 'index'])->name('areas.index');
     Route::get('/marcas', [MarcaController::class, 'index'])->name('marcas.index');
     Route::get('/modelos', [ModeloImpresoraController::class, 'index'])->name('modelos.index');
+});
+
+// Gestión de impresoras: solo administrador.
+Route::middleware(['auth', 'can:gestionar-impresoras'])->group(function () {
+    Route::get('/impresoras/crear', [ImpresoraController::class, 'create'])->name('impresoras.create');
+    Route::post('/impresoras', [ImpresoraController::class, 'store'])->name('impresoras.store');
+    Route::get('/impresoras/{impresora}/editar', [ImpresoraController::class, 'edit'])->name('impresoras.edit');
+    Route::put('/impresoras/{impresora}', [ImpresoraController::class, 'update'])->name('impresoras.update');
+    Route::post('/impresoras/{impresora}/retirar', [ImpresoraController::class, 'retirar'])->name('impresoras.retirar');
+    Route::delete('/impresoras/{impresora}', [ImpresoraController::class, 'destroy'])->name('impresoras.destroy');
 });
 
 // Gestión de catálogos: solo administrador.

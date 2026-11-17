@@ -46,6 +46,12 @@
 |D-35	|Un registro de catálogo solo se elimina si nada depende de él; las impresoras con borrado lógico cuentan como dependencia	La base de datos las sigue referenciando
 |D-36	|Errores de validación en una alerta global del layout	Una sola pieza de interfaz para todas las pantallas
 |D-37	|Edición en línea en las tablas de catálogos con campos form=	Evita pantallas separadas para registros de un solo campo
+#	Decisión	Motivo / nota
+|D-38	|La IP se normaliza (ceros a la izquierda) antes de validar y guardar, con la clase DireccionIp	El Excel trae valores como 172.20.015.25; la importación la reutilizará
+|D-39	|Retirar (estado retirada) y eliminar (borrado lógico) son acciones distintas	Una impresora retirada conserva su historial; eliminar es solo para corregir errores de carga
+|D-40	|Red/USB se valida en el formulario y en la base de datos (CHECK e índices filtrados); el servicio traduce los errores de unicidad	Doble defensa ante carreras de concurrencia
+|D-41|	Paginación con las vistas de Bootstrap 5	Tailwind se eliminó en D-32
+|D-42	|Un script mínimo en el formulario alterna los campos IP y equipo según el tipo de conexión	Sin Livewire (D-08); el servidor valida igual
 ## Pendientes
 
 - Autenticación de la API de monitoreo (decidir en la Fase 5).
