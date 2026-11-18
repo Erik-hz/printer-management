@@ -14,6 +14,15 @@ class Consumible extends Model
 {
     use SoftDeletes;
 
+    public const COLORES = [
+        'negro' => 'Negro',
+        'cian' => 'Cian',
+        'magenta' => 'Magenta',
+        'amarillo' => 'Amarillo',
+        'tricolor' => 'Tricolor',
+        'no_aplica' => 'No aplica',
+    ];
+
     protected $table = 'consumibles';
 
     protected $fillable = [
@@ -28,7 +37,11 @@ class Consumible extends Model
 
     protected function casts(): array
     {
-        return ['activo' => 'boolean'];
+        return [
+            'activo' => 'boolean',
+            'stock_minimo' => 'integer',
+            'rendimiento_paginas' => 'integer',
+        ];
     }
 
     public function tipo(): BelongsTo
@@ -54,5 +67,14 @@ class Consumible extends Model
     public function movimientosInventario(): HasMany
     {
         return $this->hasMany(MovimientoInventario::class, 'consumible_id');
+    }
+
+    /**
+     * Stock bajo: existencia menor que el mínimo. Con mínimo 0 no hay alerta.
+     * Conviene cargar antes la relación "existencia" para no hacer una consulta por fila.
+     */
+    public function estaBajoMinimo(): bool
+    {
+        return $this->existencia !== null && $this->existencia->cantidad < $this->stock_minimo;
     }
 }

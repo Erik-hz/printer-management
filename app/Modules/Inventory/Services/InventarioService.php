@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Services;
 
+use App\Modules\Inventory\Models\Consumible;
 use App\Modules\Inventory\Models\Existencia;
 use App\Modules\Inventory\Models\MovimientoInventario;
 use App\Modules\Printers\Models\Impresora;
@@ -11,6 +12,10 @@ use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Único punto de entrada para modificar existencias. Cada operación se ejecuta en una
+ * transacción, bloquea la fila de existencias y registra un movimiento inmutable.
+ */
 class InventarioService
 {
     public function registrarRecepcion(
@@ -21,6 +26,7 @@ class InventarioService
         ?DateTimeInterface $fechaMovimiento = null,
     ): MovimientoInventario {
         $this->validarCantidadPositiva($cantidad);
+        $ticket = $this->normalizarTicket($ticket);
 
         return DB::transaction(function () use (
             $detalleCompraId,
@@ -84,6 +90,56 @@ class InventarioService
         });
     }
 
+    /**
+     * Entrada sin compra (stock inicial, donación...). Exige un motivo escrito y un consumible activo.
+     */
+    public function registrarEntradaManual(
+        int $consumibleId,
+        int $cantidad,
+        string $motivo,
+        int $usuarioId,
+        ?string $ticket = null,
+        ?DateTimeInterface $fechaMovimiento = null,
+    ): MovimientoInventario {
+        $this->validarCantidadPositiva($cantidad);
+        $motivo = $this->motivoObligatorio(
+            $motivo,
+            'La entrada sin compra requiere un motivo (por ejemplo, stock inicial o donación).'
+        );
+        $ticket = $this->normalizarTicket($ticket);
+
+        return DB::transaction(function () use (
+            $consumibleId,
+            $cantidad,
+            $motivo,
+            $usuarioId,
+            $ticket,
+            $fechaMovimiento,
+        ): MovimientoInventario {
+            $this->validarConsumible($consumibleId, exigirActivo: true);
+
+            $existencia = $this->existenciaBloqueada($consumibleId);
+            $existencia->cantidad += $cantidad;
+            $existencia->save();
+
+            return $this->crearMovimiento([
+                'consumible_id' => $consumibleId,
+                'tipo' => 'entrada',
+                'cantidad' => $cantidad,
+                'saldo_resultante' => $existencia->cantidad,
+                'motivo' => $motivo,
+                'usuario_id' => $usuarioId,
+                'ticket' => $ticket,
+                'fecha_movimiento' => $fechaMovimiento ?? now(),
+            ]);
+        });
+    }
+
+    /**
+     * Salida de almacén. La impresora de destino es obligatoria en la pantalla de registro,
+     * pero este servicio acepta null para las cargas históricas del Excel (Fase 7), donde
+     * el destino puede no constar. Si se indica, debe existir y estar operativa.
+     */
     public function registrarSalida(
         int $consumibleId,
         int $cantidad,
@@ -93,6 +149,7 @@ class InventarioService
         ?DateTimeInterface $fechaMovimiento = null,
     ): MovimientoInventario {
         $this->validarCantidadPositiva($cantidad);
+        $ticket = $this->normalizarTicket($ticket);
 
         return DB::transaction(function () use (
             $consumibleId,
@@ -102,10 +159,10 @@ class InventarioService
             $ticket,
             $fechaMovimiento,
         ): MovimientoInventario {
-            if ($impresoraId !== null && ! Impresora::query()->whereKey($impresoraId)->exists()) {
-                throw ValidationException::withMessages([
-                    'impresora_id' => 'La impresora indicada no existe o está retirada.',
-                ]);
+            $this->validarConsumible($consumibleId);
+
+            if ($impresoraId !== null) {
+                $this->validarImpresoraDestino($impresoraId);
             }
 
             $existencia = $this->existenciaBloqueada($consumibleId);
@@ -146,13 +203,8 @@ class InventarioService
             ]);
         }
 
-        $motivo = trim($motivo);
-
-        if ($motivo === '') {
-            throw ValidationException::withMessages([
-                'motivo' => 'El motivo del ajuste es obligatorio.',
-            ]);
-        }
+        $motivo = $this->motivoObligatorio($motivo, 'El motivo del ajuste es obligatorio.');
+        $ticket = $this->normalizarTicket($ticket);
 
         return DB::transaction(function () use (
             $consumibleId,
@@ -162,6 +214,8 @@ class InventarioService
             $ticket,
             $fechaMovimiento,
         ): MovimientoInventario {
+            $this->validarConsumible($consumibleId);
+
             $existencia = $this->existenciaBloqueada($consumibleId);
             $nuevoSaldo = $existencia->cantidad + $cantidad;
 
@@ -200,6 +254,57 @@ class InventarioService
         }
 
         return $existencia;
+    }
+
+    /** El consumible debe existir (no estar eliminado). Para ingresar stock, además, estar activo. */
+    private function validarConsumible(int $consumibleId, bool $exigirActivo = false): void
+    {
+        $consumible = Consumible::query()->find($consumibleId);
+
+        if ($consumible === null) {
+            throw ValidationException::withMessages([
+                'consumible_id' => 'El consumible no existe o fue eliminado.',
+            ]);
+        }
+
+        if ($exigirActivo && ! $consumible->activo) {
+            throw ValidationException::withMessages([
+                'consumible_id' => 'No se puede ingresar stock a un consumible inactivo. Actívelo primero.',
+            ]);
+        }
+    }
+
+    /** La impresora debe existir y estar operativa; una retirada no recibe consumibles. */
+    private function validarImpresoraDestino(int $impresoraId): void
+    {
+        $valida = Impresora::query()
+            ->whereKey($impresoraId)
+            ->whereHas('estado', fn ($estado) => $estado->where('es_operativo', true))
+            ->exists();
+
+        if (! $valida) {
+            throw ValidationException::withMessages([
+                'impresora_id' => 'La impresora indicada no existe o no está operativa (por ejemplo, está retirada).',
+            ]);
+        }
+    }
+
+    private function motivoObligatorio(string $motivo, string $mensaje): string
+    {
+        $motivo = trim($motivo);
+
+        if ($motivo === '') {
+            throw ValidationException::withMessages(['motivo' => $mensaje]);
+        }
+
+        return $motivo;
+    }
+
+    private function normalizarTicket(?string $ticket): ?string
+    {
+        $ticket = $ticket === null ? null : trim($ticket);
+
+        return $ticket === '' ? null : $ticket;
     }
 
     private function validarCantidadPositiva(int $cantidad): void

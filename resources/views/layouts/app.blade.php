@@ -23,6 +23,41 @@
                             </li>
                         @endcan
                     @endif
+                    @can('ver-inventario')
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('consumibles.*')) active @endif"
+                               href="{{ route('consumibles.index') }}">Consumibles</a>
+                        </li>
+                    @endcan
+                    @can('ver-inventario')
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('movimientos.*')) active @endif"
+                               href="{{ route('movimientos.index') }}">Movimientos</a>
+                        </li>
+                    @endcan
+                    @can('ver-monitoreo')
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('lecturas.*')) active @endif"
+                               href="{{ route('lecturas.index') }}">Lecturas</a>
+                        </li>
+                    @endcan
+                    @can('gestionar-compras')
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle @if (request()->routeIs('compras.*', 'proveedores.*', 'precios-consumibles.*')) active @endif"
+                               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Compras</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('compras.index') }}">Órdenes de compra</a></li>
+                                <li><a class="dropdown-item" href="{{ route('proveedores.index') }}">Proveedores</a></li>
+                                <li><a class="dropdown-item" href="{{ route('precios-consumibles.index') }}">Precios de consumibles</a></li>
+                            </ul>
+                        </li>
+                    @endcan
+                    @can('gestionar-importaciones')
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('importaciones.*')) active @endif"
+                               href="{{ route('importaciones.index') }}">Importaciones</a>
+                        </li>
+                    @endcan
                     @can('ver-impresoras')
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle @if (request()->routeIs('zonas.*', 'lugares.*', 'areas.*', 'marcas.*', 'modelos.*')) active @endif"

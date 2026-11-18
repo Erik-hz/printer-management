@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Purchasing\Services\PrecioConsumibleService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class PurchasingSchemaTest extends TestCase
@@ -40,6 +42,67 @@ class PurchasingSchemaTest extends TestCase
         $this->expectException(QueryException::class);
 
         $this->insertarDetalle($compraId, $consumibleId, ['precio_unitario' => -1]);
+    }
+
+    public function test_price_service_rejects_overlapping_vigencies(): void
+    {
+        [$compraId, $consumibleId] = $this->crearCompraYConsumible();
+        $proveedorId = DB::table('compras')->where('id', $compraId)->value('proveedor_id');
+        $servicio = new PrecioConsumibleService;
+
+        $servicio->registrar([
+            'consumible_id' => $consumibleId,
+            'proveedor_id' => $proveedorId,
+            'precio' => 10,
+            'moneda' => 'BOB',
+            'incluye_iva' => false,
+            'vigente_desde' => '2026-11-01',
+            'vigente_hasta' => '2026-11-30',
+        ]);
+
+        try {
+            $servicio->registrar([
+                'consumible_id' => $consumibleId,
+                'proveedor_id' => $proveedorId,
+                'precio' => 12,
+                'moneda' => 'BOB',
+                'incluye_iva' => false,
+                'vigente_desde' => '2026-11-30',
+                'vigente_hasta' => null,
+            ]);
+            $this->fail('Se aceptó una vigencia de precio solapada.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('vigente_desde', $exception->errors());
+        }
+    }
+
+    public function test_price_service_accepts_consecutive_vigencies(): void
+    {
+        [$compraId, $consumibleId] = $this->crearCompraYConsumible();
+        $proveedorId = DB::table('compras')->where('id', $compraId)->value('proveedor_id');
+        $servicio = new PrecioConsumibleService;
+
+        $primero = $servicio->registrar([
+            'consumible_id' => $consumibleId,
+            'proveedor_id' => $proveedorId,
+            'precio' => 10,
+            'moneda' => 'BOB',
+            'incluye_iva' => false,
+            'vigente_desde' => '2026-11-01',
+            'vigente_hasta' => '2026-11-29',
+        ]);
+        $segundo = $servicio->registrar([
+            'consumible_id' => $consumibleId,
+            'proveedor_id' => $proveedorId,
+            'precio' => 12,
+            'moneda' => 'BOB',
+            'incluye_iva' => false,
+            'vigente_desde' => '2026-11-30',
+            'vigente_hasta' => null,
+        ]);
+
+        $this->assertNotNull($primero->id);
+        $this->assertNotNull($segundo->id);
     }
 
     private function crearProveedorYUsuario(): array

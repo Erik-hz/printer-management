@@ -6,6 +6,7 @@ use App\Modules\Inventory\Services\ConsumibleService;
 use App\Modules\Inventory\Services\InventarioService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -196,6 +197,34 @@ class InventorySchemaTest extends TestCase
                 'id' => $movimiento->getKey(),
             ]);
         }
+    }
+
+    public function test_inventory_verification_detects_a_mismatched_balance(): void
+    {
+        [$consumibleId, $usuarioId] = $this->crearConsumibleYUsuario();
+        $this->crearExistencia($consumibleId, 5);
+        $this->insertarMovimiento($consumibleId, $usuarioId, [
+            'tipo' => 'entrada',
+            'cantidad' => 3,
+            'saldo_resultante' => 3,
+        ]);
+
+        $this->assertSame(1, Artisan::call('inventario:verificar'));
+        $this->assertStringContainsString('existencia 5, suma de movimientos 3', Artisan::output());
+    }
+
+    public function test_inventory_verification_accepts_matching_balances(): void
+    {
+        [$consumibleId, $usuarioId] = $this->crearConsumibleYUsuario();
+        $this->crearExistencia($consumibleId, 3);
+        $this->insertarMovimiento($consumibleId, $usuarioId, [
+            'tipo' => 'entrada',
+            'cantidad' => 3,
+            'saldo_resultante' => 3,
+        ]);
+
+        $this->assertSame(0, Artisan::call('inventario:verificar'));
+        $this->assertStringContainsString('coinciden', Artisan::output());
     }
 
     private function crearConsumibleYUsuario(): array

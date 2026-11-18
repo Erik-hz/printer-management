@@ -4,9 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Modules\Inventory\Models\Consumible;
-use App\Modules\Inventory\Models\Existencia;
-use App\Modules\Inventory\Models\MovimientoInventario;
 use App\Modules\Inventory\Models\TipoConsumible;
+use App\Modules\Inventory\Services\ConsumibleService;
+use App\Modules\Inventory\Services\InventarioService;
 use App\Modules\Monitoring\Models\Lectura;
 use App\Modules\Monitoring\Models\MotivoSinLectura;
 use App\Modules\Printers\Models\Area;
@@ -37,6 +37,8 @@ class DatosPruebaSeeder extends Seeder
 
         DB::transaction(function () {
             $admin = User::where('email', 'admin@sgiic.test')->firstOrFail();
+            $servicioConsumibles = new ConsumibleService();
+            $inventario = new InventarioService();
 
             // ---- Ubicación ----
             $zonaNorte = Zona::firstOrCreate(['nombre' => 'Zona Demo Norte']);
@@ -83,7 +85,7 @@ class DatosPruebaSeeder extends Seeder
             $crear('PRN-DEMO-07', $brotherTinta, $tallerArea, $activa, ['tipo_conexion' => 'usb', 'equipo_conectado' => 'PC-DEMO-01']);
             $crear('PRN-DEMO-08', $epsonTinta, $admArea, $activa, ['tipo_conexion' => 'usb', 'equipo_conectado' => 'PC-DEMO-02']);
 
-            // ---- Consumibles y compatibilidad ----
+            // ---- Consumibles y compatibilidad (con su existencia en cero) ----
             $toner = TipoConsumible::where('nombre', 'Tóner')->firstOrFail();
             $tinta = TipoConsumible::where('nombre', 'Tinta')->firstOrFail();
             $plotter = TipoConsumible::where('nombre', 'Cartucho de plotter')->firstOrFail();
@@ -103,20 +105,19 @@ class DatosPruebaSeeder extends Seeder
 
             $consumibles = [];
             foreach ($definiciones as [$codigo, $tipo, $color, $rend, $minimo, $modelos]) {
-                $c = Consumible::create([
+                $consumibles[$codigo] = $servicioConsumibles->crear([
                     'tipo_consumible_id' => $tipo->id,
                     'codigo' => $codigo,
                     'descripcion' => "Consumible de prueba {$codigo}",
                     'color' => $color,
                     'rendimiento_paginas' => $rend,
                     'stock_minimo' => $minimo,
+                    'activo' => true,
+                    'modelos' => collect($modelos)->pluck('id')->all(),
                 ]);
-                $c->modelos()->attach(collect($modelos)->pluck('id')->all());
-                Existencia::create(['consumible_id' => $c->id, 'cantidad' => 0]);
-                $consumibles[$codigo] = $c;
             }
 
-            // ---- Compras y precios ----
+            // ---- Compra y precios ----
             $proveedor = Proveedor::firstOrCreate(['nombre' => 'Proveedor Demo S.R.L.']);
 
             $compra = Compra::create([
@@ -124,7 +125,7 @@ class DatosPruebaSeeder extends Seeder
                 'usuario_id' => $admin->id,
                 'numero_documento' => 'DEMO-OC-001',
                 'fecha_orden' => now()->subDays(30)->toDateString(),
-                'estado' => 'recibida',
+                'estado' => 'ordenada',
                 'incluye_iva' => true,
                 'observaciones' => 'Compra de prueba',
             ]);
@@ -132,14 +133,14 @@ class DatosPruebaSeeder extends Seeder
                 'compra_id' => $compra->id,
                 'consumible_id' => $consumibles['DEMO-TN-N']->id,
                 'cantidad' => 10,
-                'cantidad_recibida' => 10,
+                'cantidad_recibida' => 0,
                 'precio_unitario' => 150.00,
             ]);
             $detTinta = DetalleCompra::create([
                 'compra_id' => $compra->id,
                 'consumible_id' => $consumibles['DEMO-TINTA-N']->id,
                 'cantidad' => 6,
-                'cantidad_recibida' => 6,
+                'cantidad_recibida' => 0,
                 'precio_unitario' => 85.00,
             ]);
 
@@ -159,33 +160,17 @@ class DatosPruebaSeeder extends Seeder
                 'vigente_desde' => '2026-07-01',
             ]);
 
-            // ---- Movimientos (la existencia siempre es la suma de los movimientos) ----
-            $mover = function (Consumible $c, string $tipo, int $cantidad, array $extra = []) use ($admin) {
-                $existencia = Existencia::findOrFail($c->id);
-                $saldo = $existencia->cantidad + $cantidad;
-
-                MovimientoInventario::create(array_merge([
-                    'consumible_id' => $c->id,
-                    'tipo' => $tipo,
-                    'cantidad' => $cantidad,
-                    'saldo_resultante' => $saldo,
-                    'usuario_id' => $admin->id,
-                    'fecha_movimiento' => now(),
-                ], $extra));
-
-                $existencia->update(['cantidad' => $saldo]);
-            };
-
-            $mover($consumibles['DEMO-TN-N'], 'entrada', 10, ['detalle_compra_id' => $detTn->id]);
-            $mover($consumibles['DEMO-TN-N'], 'salida', -2, ['impresora_id' => $p1->id, 'ticket' => 'R-DEMO-001']);
-            $mover($consumibles['DEMO-TINTA-N'], 'entrada', 6, ['detalle_compra_id' => $detTinta->id]);
-            $mover($consumibles['DEMO-TINTA-N'], 'ajuste', -1, ['motivo' => 'Conteo físico (dato de prueba)']);
+            // ---- Movimientos, siempre a través del servicio de inventario ----
+            $inventario->registrarRecepcion($detTn->id, 10, $admin->id);
+            $inventario->registrarSalida($consumibles['DEMO-TN-N']->id, 2, $admin->id, $p1->id, 'R-DEMO-001');
+            $inventario->registrarRecepcion($detTinta->id, 6, $admin->id);
+            $inventario->registrarAjuste($consumibles['DEMO-TINTA-N']->id, -1, 'Conteo físico (dato de prueba)', $admin->id);
 
             foreach (['DEMO-TC-N' => 4, 'DEMO-TC-C' => 4, 'DEMO-TC-M' => 4, 'DEMO-TC-Y' => 4, 'DEMO-PL-N' => 2] as $codigo => $cantidad) {
-                $mover($consumibles[$codigo], 'entrada', $cantidad, ['motivo' => 'Stock inicial de prueba']);
+                $inventario->registrarEntradaManual($consumibles[$codigo]->id, $cantidad, 'Stock inicial de prueba', $admin->id);
             }
             // Existencia por debajo del mínimo (2): sirve para probar alertas en la Fase 6.
-            $mover($consumibles['DEMO-KIT-1'], 'entrada', 1, ['motivo' => 'Stock inicial de prueba']);
+            $inventario->registrarEntradaManual($consumibles['DEMO-KIT-1']->id, 1, 'Stock inicial de prueba', $admin->id);
 
             // ---- Lecturas ----
             $lectura1 = Lectura::create([
@@ -207,16 +192,15 @@ class DatosPruebaSeeder extends Seeder
                 $lectura2->niveles()->create(['tipo_consumible_id' => $toner->id, 'color' => $color, 'nivel' => $nivel]);
             }
 
-            // Lectura sin contador, pero con motivo válido para cumplir la regla de negocio.
+            // Lectura sin contador (caso de la regla 12): solo nivel.
             $lectura3 = Lectura::create([
                 'impresora_id' => $p4->id,
                 'fecha_lectura' => now()->subDay(),
                 'origen' => 'snmp',
-                'motivo_sin_lectura_id' => MotivoSinLectura::where('nombre', 'descuento')->firstOrFail()->id,
             ]);
             $lectura3->niveles()->create(['tipo_consumible_id' => $plotter->id, 'color' => 'negro', 'nivel' => 0.50]);
 
-            // Lectura sin datos, con motivo (el primer motivo sembrado).
+            // Lectura sin datos, con motivo "retirado" (impresora retirada).
             Lectura::create([
                 'impresora_id' => $p6->id,
                 'fecha_lectura' => now()->subDays(5),

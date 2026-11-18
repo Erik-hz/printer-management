@@ -56,7 +56,4 @@ erDiagram
 
 ## Pendiente de servicios (no es posible con restricciones de la base)
 
-- Una fila en `existencias` por cada consumible nuevo (servicio de inventario, Fase 4).
-- Existencia actual igual a la suma de movimientos (comando de control, Fase 4).
 - Una lectura debe traer al menos un dato: contador, niveles o motivo (servicio de lecturas, Fase 5).
-- Sin vigencias de precio solapadas por consumible y proveedor (servicio de precios, Fase 4).

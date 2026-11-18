@@ -9,5 +9,4 @@ class MotivoSinLectura extends Model
     protected $table = 'motivos_sin_lectura';
 
     protected $fillable = ['nombre'];
-
 }

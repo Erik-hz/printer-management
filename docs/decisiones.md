@@ -57,9 +57,24 @@ D-44	|Contraseñas: mínimo 10 caracteres, con una letra y un número, definidas
 | D-49	|Índices explícitos en las claves foráneas de impresoras y en modelo_consumible.consumible_id	SQL Server no los crea solo
 | D-50	|Una prueba recorre todas las rutas con auth y exige redirección al login para invitados	Cubre las rutas de fases futuras sin escribir pruebas nuevas
 | D-51	|Una prueba exige que las consultas del listado no crezcan con las filas	Detecta N+1 antes de que importe
+| D-52	|Los servicios de inventario existentes se conservan y se extienden	Ya tienen transacción, bloqueo de fila y pruebas; no se duplica lógica
+| D-53	|Permisos de inventario: ver para todos; gestionar consumibles, registrar movimientos y gestionar compras para administrador y responsable de inventario	Propuesta pendiente de confirmación del responsable
+| D-54	|Stock bajo = existencia menor que el mínimo; mínimo 0 = sin alerta	Evita alertas en consumibles sin umbral definido
+| D-55	|Un consumible solo se elimina (borrado lógico) sin movimientos, compras ni precios; al eliminarlo se desvincula su compatibilidad	Lo normal es desactivarlo; no bloquea el borrado de modelos
+| D-56	|Las existencias no se editan desde el formulario del consumible	Solo cambian con movimientos confirmados
+| D-57	|registrarEntradaManual: entrada sin compra solo con motivo y a consumibles activos	Trazabilidad de las entradas fuera de compras
+| D-58	|La impresora de destino es obligatoria en la pantalla; el servicio acepta salidas sin impresora	Cargas históricas del Excel (Fase 7)
+| D-59	|La impresora de destino debe estar operativa (es_operativo); una retirada se rechaza	Evita entregas a impresoras fuera de servicio
+| D-60	|Salidas y ajustes se permiten sobre consumibles inactivos; las entradas no	Permite vaciar el stock de un consumible dado de baja
+| D-61	|Los tickets se recortan y uno en blanco se guarda como nulo	Datos consistentes
+| D-62	|Los datos de prueba pasan por los servicios	No hay dos caminos para modificar existencias
+| D-63	|No existen rutas para editar o borrar movimientos	El libro es inmutable; los errores se corrigen con ajustes
+| D-64 | Las existencias se verifican con `inventario:verificar` comparándolas con la suma de movimientos | Detecta inconsistencias sin modificar datos |
+| D-65 | Las vigencias de precio no se solapan para el mismo consumible y proveedor | El precio vigente se determina sin ambigüedad |
+| D-66 | La API de monitoreo usa acceso únicamente desde la red local, sin autenticación durante el piloto | Limita su exposición mientras se implementa y prueba el flujo local; no se debe publicar en Internet |
+| D-67 | El módulo de monitoreo separa permisos de consulta y registro de lecturas | Consulta disponible para todos los roles; registro para administrador, responsable de inventario y técnico |
 ## Pendientes
 
-- Autenticación de la API de monitoreo (decidir en la Fase 5).
 - Nombre de la base de datos: hoy `laravel`; considerar un nombre propio del proyecto.
 - Herramienta actual: HP Web Jetadmin. Áreas candidatas indicadas para revisar: inventario y descubrimiento, estado y disponibilidad, consumibles y contadores, alertas, configuración remota, informes e historial, firmware y actualizaciones. No confirmadas como alcance; revisar el uso real antes de definir la Fase 3.
 - Confirmar D-19 (proveedor obligatorio en compras).
