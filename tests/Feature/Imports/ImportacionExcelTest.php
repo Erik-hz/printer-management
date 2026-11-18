@@ -4,13 +4,17 @@ namespace Tests\Feature\Imports;
 
 use App\Models\User;
 use App\Modules\Imports\Models\Importacion;
+use App\Modules\Imports\Services\ImportacionExcelService;
 use App\Modules\Inventory\Models\TipoConsumible;
 use App\Modules\Monitoring\Models\Lectura;
 use App\Modules\Monitoring\Models\MotivoSinLectura;
+use App\Modules\Monitoring\Services\LecturaService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use PDOException;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\Concerns\CreaImpresoras;
@@ -125,6 +129,43 @@ class ImportacionExcelTest extends TestCase
         $this->assertSame(1, Lectura::query()->count());
 
         $this->eliminarArchivo($archivo);
+    }
+
+    public function test_un_error_de_base_de_datos_no_se_registra_como_error_de_fila(): void
+    {
+        $usuario = User::factory()->conRol('administrador')->create();
+        TipoConsumible::firstOrCreate(['nombre' => 'toner']);
+        $error = new QueryException('sqlite', 'insert into lecturas', [], new PDOException('Database unavailable', 8001));
+        $lecturas = $this->mock(LecturaService::class);
+        $lecturas->shouldReceive('registrar')->once()->andThrow($error);
+        $servicio = new ImportacionExcelService($lecturas);
+
+        try {
+            $servicio->ejecutar([
+                'hoja' => '29052025',
+                'filas_leidas' => 1,
+                'filas_omitidas' => 0,
+                'filas' => [[
+                    'fila' => 3,
+                    'impresora' => 'PRN-TEST',
+                    'impresora_id' => 1,
+                    'lecturas' => [[
+                        'fecha_lectura' => '2025-03-31 00:00:00',
+                        'tipo' => 'nivel',
+                        'niveles' => [['color' => 'negro', 'nivel' => 0.5]],
+                    ]],
+                    'errores' => [],
+                ]],
+            ], 'historico.xlsx', (int) $usuario->id);
+            $this->fail('Se ocultó un error de base de datos.');
+        } catch (QueryException $exception) {
+            $this->assertSame($error, $exception);
+        }
+
+        $importacion = Importacion::query()->firstOrFail();
+        $this->assertSame('fallida', $importacion->estado);
+        $this->assertNotNull($importacion->finalizada_en);
+        $this->assertSame(0, $importacion->errores()->count());
     }
 
     public function test_importa_porcentajes_de_color_por_canal_y_reporta_valores_desconocidos(): void

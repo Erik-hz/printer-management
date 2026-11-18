@@ -16,7 +16,13 @@ class CompraRequest extends FormRequest
     {
         return [
             'proveedor_id' => ['required', 'integer', Rule::exists('proveedores', 'id')->where('activo', true)->whereNull('deleted_at')],
-            'numero_documento' => ['nullable', 'string', 'max:100'],
+            'numero_documento' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('compras', 'numero_documento')
+                    ->where(fn ($consulta) => $consulta->where('proveedor_id', $this->input('proveedor_id'))),
+            ],
             'fecha_orden' => ['required', 'date'],
             'moneda' => ['required', 'string', 'size:3', 'alpha'],
             'incluye_iva' => ['required', 'boolean'],
@@ -37,6 +43,7 @@ class CompraRequest extends FormRequest
     {
         return [
             'proveedor_id.exists' => 'Seleccione un proveedor activo.',
+            'numero_documento.unique' => 'Ese número de documento ya está registrado para el proveedor seleccionado.',
             'detalles.required' => 'Agregue al menos un consumible a la orden.',
             'detalles.*.consumible_id.distinct' => 'No repita consumibles; indique una sola línea por consumible.',
             'detalles.*.consumible_id.exists' => 'Seleccione un consumible activo.',

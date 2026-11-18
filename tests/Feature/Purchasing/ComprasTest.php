@@ -110,6 +110,30 @@ class ComprasTest extends TestCase
         $this->assertDatabaseCount('movimientos_inventario', 0);
     }
 
+    public function test_no_se_acepta_repetir_numero_documento_para_el_mismo_proveedor(): void
+    {
+        $usuario = $this->gestor();
+        $proveedor = $this->proveedor();
+        $consumible = $this->consumible();
+        $datos = [
+            'proveedor_id' => $proveedor->id,
+            'fecha_orden' => '2026-11-17',
+            'numero_documento' => 'OC-REPETIDA',
+            'moneda' => 'BOB',
+            'incluye_iva' => false,
+            'detalles' => [[
+                'consumible_id' => $consumible->id,
+                'cantidad' => 1,
+                'precio_unitario' => 20,
+            ]],
+        ];
+
+        $this->actingAs($usuario)->post('/compras', $datos)->assertSessionHasNoErrors();
+        $this->actingAs($usuario)->post('/compras', $datos)->assertSessionHasErrors('numero_documento');
+
+        $this->assertDatabaseCount('compras', 1);
+    }
+
     public function test_los_usuarios_sin_permiso_no_pueden_gestionar_compras(): void
     {
         $this->get('/compras')->assertRedirect(route('login'));

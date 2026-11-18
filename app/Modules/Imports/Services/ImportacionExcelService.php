@@ -285,7 +285,15 @@ class ImportacionExcelService
                         ->all()
                 );
                 $importacion->filas_con_error++;
-            } catch (QueryException) {
+            } catch (QueryException $exception) {
+                if (! str_starts_with((string) $exception->getCode(), '23')) {
+                    $importacion->estado = 'fallida';
+                    $importacion->finalizada_en = now();
+                    $importacion->save();
+
+                    throw $exception;
+                }
+
                 $this->registrarErrores($importacion, $fila['fila'], [[
                     'columna' => null,
                     'valor' => null,
