@@ -1,6 +1,6 @@
 # SGIIC — Fase 5: monitoreo y lecturas
 
-Última actualización: 17/11/2026
+Última actualización: 18/11/2026
 
 ## Registro manual
 
@@ -19,13 +19,16 @@ No se puede combinar contador y motivo sin lectura.
 
 ## API local
 
-Durante el piloto, la API solo acepta conexiones de localhost o redes privadas:
+Durante el piloto, la API solo acepta conexiones de localhost o redes privadas. También requiere un token Bearer compartido y limita las solicitudes a 300 por minuto por dirección IP:
 
 ```text
 POST /api/monitoring/lecturas
+Authorization: Bearer <MONITOREO_TOKEN>
 ```
 
-No requiere sesión ni autenticación en esta etapa. Ejemplo de cuerpo:
+Configure `MONITOREO_TOKEN` en `.env` con un valor secreto y no lo incluya en el repositorio. Si la variable está vacía o no configurada, la API rechaza todas las solicitudes. El endpoint no requiere sesión de usuario.
+
+Ejemplo de cuerpo:
 
 ```json
 {
@@ -37,4 +40,4 @@ No requiere sesión ni autenticación en esta etapa. Ejemplo de cuerpo:
 }
 ```
 
-Orígenes admitidos por API: `snmp` y `powershell`. La API rechaza solicitudes desde IP pública.
+Orígenes admitidos por API: `snmp` y `powershell`. La API rechaza solicitudes desde IP pública y responde con JSON incluso cuando el cliente no envía `Accept: application/json`.

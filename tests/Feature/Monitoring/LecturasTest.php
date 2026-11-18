@@ -14,6 +14,13 @@ class LecturasTest extends TestCase
 {
     use CreaImpresoras, RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['monitoring.token' => 'token-de-prueba']);
+    }
+
     public function test_el_servicio_requiere_dato_leido(): void
     {
         $impresora = $this->crearImpresora();
@@ -90,7 +97,7 @@ class LecturasTest extends TestCase
                 'fecha_lectura' => '2026-11-17T18:00:00',
                 'origen' => 'snmp',
                 'contador_paginas' => 200,
-            ])
+            ], ['Authorization' => 'Bearer token-de-prueba'])
             ->assertCreated()
             ->assertJsonPath('origen', 'snmp');
 

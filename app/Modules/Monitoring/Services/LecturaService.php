@@ -30,7 +30,7 @@ class LecturaService
             ]);
         }
 
-        $fecha = CarbonImmutable::parse($attributes['fecha_lectura']);
+        $fecha = CarbonImmutable::parse($attributes['fecha_lectura'])->setTimezone(config('app.timezone'));
         $attributes['fecha_lectura'] = $fecha;
 
         if ($attributes['origen'] === 'manual' && empty($attributes['usuario_id'])) {
