@@ -2,6 +2,7 @@
 
 namespace App\Modules\Purchasing\Services;
 
+use App\Modules\Inventory\Models\Consumible;
 use App\Modules\Purchasing\Models\PrecioConsumible;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -22,32 +23,39 @@ class PrecioConsumibleService
             ]);
         }
 
-        $this->rechazarSolapamiento(
-            (int) $attributes['consumible_id'],
-            array_key_exists('proveedor_id', $attributes) ? $attributes['proveedor_id'] : null,
-            $desde,
-            $hasta
-        );
+        return DB::transaction(function () use ($attributes, $desde, $hasta): PrecioConsumible {
+            $consumibleId = (int) $attributes['consumible_id'];
+            $this->bloquearPreciosDelConsumible($consumibleId);
 
-        return PrecioConsumible::query()->create([
-            ...$attributes,
-            'vigente_desde' => $desde->toDateString(),
-            'vigente_hasta' => $hasta?->toDateString(),
-        ]);
+            $this->rechazarSolapamiento(
+                $consumibleId,
+                array_key_exists('proveedor_id', $attributes) ? $attributes['proveedor_id'] : null,
+                $desde,
+                $hasta
+            );
+
+            return PrecioConsumible::query()->create([
+                ...$attributes,
+                'vigente_desde' => $desde->toDateString(),
+                'vigente_hasta' => $hasta?->toDateString(),
+            ]);
+        });
     }
 
     public function cerrarVigencia(PrecioConsumible $precio, string $vigenteHasta): PrecioConsumible
     {
         $hasta = $this->fecha($vigenteHasta);
 
-        if ($hasta->lt($precio->vigente_desde)) {
-            throw ValidationException::withMessages([
-                'vigente_hasta' => 'La vigencia final no puede ser anterior a la inicial.',
-            ]);
-        }
-
         return DB::transaction(function () use ($precio, $hasta): PrecioConsumible {
+            $consumibleId = (int) $precio->consumible_id;
+            $this->bloquearPreciosDelConsumible($consumibleId);
             $precioBloqueado = PrecioConsumible::query()->lockForUpdate()->findOrFail($precio->id);
+
+            if ((int) $precioBloqueado->consumible_id !== $consumibleId) {
+                throw ValidationException::withMessages([
+                    'vigente_hasta' => 'El precio cambió durante la operación. Vuelva a intentarlo.',
+                ]);
+            }
 
             if ($precioBloqueado->vigente_hasta !== null) {
                 throw ValidationException::withMessages([
@@ -55,10 +63,18 @@ class PrecioConsumibleService
                 ]);
             }
 
+            $desde = $this->fecha($precioBloqueado->vigente_desde->toDateString());
+
+            if ($hasta->lt($desde)) {
+                throw ValidationException::withMessages([
+                    'vigente_hasta' => 'La vigencia final no puede ser anterior a la inicial.',
+                ]);
+            }
+
             $this->rechazarSolapamiento(
-                (int) $precioBloqueado->consumible_id,
+                $consumibleId,
                 $precioBloqueado->proveedor_id,
-                $this->fecha($precioBloqueado->vigente_desde->toDateString()),
+                $desde,
                 $hasta,
                 (int) $precioBloqueado->id,
             );
@@ -98,6 +114,12 @@ class PrecioConsumibleService
                 'vigente_desde' => 'Ya existe un precio vigente para este consumible y proveedor en el periodo indicado.',
             ]);
         }
+    }
+
+    private function bloquearPreciosDelConsumible(int $consumibleId): void
+    {
+        // Lock the parent row so overlapping inserts serialize even when no price row exists yet.
+        Consumible::query()->lockForUpdate()->findOrFail($consumibleId);
     }
 
     private function fecha(string $valor): CarbonImmutable

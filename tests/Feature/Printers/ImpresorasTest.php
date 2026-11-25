@@ -3,6 +3,8 @@
 namespace Tests\Feature\Printers;
 
 use App\Models\User;
+use App\Modules\Inventory\Models\TipoConsumible;
+use App\Modules\Monitoring\Services\LecturaService;
 use App\Modules\Printers\Models\Area;
 use App\Modules\Printers\Models\EstadoImpresora;
 use App\Modules\Printers\Models\Impresora;
@@ -81,6 +83,53 @@ class ImpresorasTest extends TestCase
         $this->actingAs($lector)->post('/impresoras', $this->datosRed($base, ['nombre' => 'PRN-NUEVA']))->assertForbidden();
 
         $this->assertDatabaseCount('impresoras', 1);
+    }
+
+    public function test_listado_muestra_resumen_y_niveles_de_tinta_de_la_ultima_lectura(): void
+    {
+        $base = $this->base();
+        $impresora = $this->crear($base, [
+            'tipo_conexion' => 'red',
+            'direccion_ip' => '10.0.0.25',
+        ]);
+        $tipo = TipoConsumible::firstOrCreate(['nombre' => 'Toner']);
+
+        (new LecturaService)->registrar([
+            'impresora_id' => $impresora->id,
+            'fecha_lectura' => '2026-11-18 10:00:00',
+            'origen' => 'snmp',
+            'contador_paginas' => 80,
+            'niveles' => [[
+                'tipo_consumible_id' => $tipo->id,
+                'color' => 'negro',
+                'nivel' => 0,
+            ]],
+        ]);
+        (new LecturaService)->registrar([
+            'impresora_id' => $impresora->id,
+            'fecha_lectura' => '2026-11-19 10:00:00',
+            'origen' => 'snmp',
+            'contador_paginas' => 100,
+            'niveles' => [
+                ['tipo_consumible_id' => $tipo->id, 'color' => 'negro', 'nivel' => 0.10],
+                ['tipo_consumible_id' => $tipo->id, 'color' => 'cian', 'nivel' => 0.20],
+                ['tipo_consumible_id' => $tipo->id, 'color' => 'magenta', 'nivel' => 0.75],
+            ],
+        ]);
+
+        $consulta = User::factory()->conRol('consulta')->create();
+        $this->actingAs($consulta)
+            ->get('/impresoras')
+            ->assertOk()
+            ->assertSee('Estado de tinta')
+            ->assertSee('Críticos')
+            ->assertSee('Bajos')
+            ->assertSee('Normales')
+            ->assertSee('10,0%')
+            ->assertSee('20,0%')
+            ->assertSee('75,0%')
+            ->assertDontSee('<strong>0,0%</strong>', false)
+            ->assertSee('role="progressbar"', false);
     }
 
     public function test_los_roles_sin_permiso_no_pueden_modificar_impresoras(): void

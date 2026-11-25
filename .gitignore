@@ -16,7 +16,9 @@
 /public/build
 /public/hot
 /public/storage
+/scripts/printers.snmp.local.json
 /storage/*.key
+/storage/app/private/monitoreo_snapshot.sqlite*
 /storage/pail
 /vendor
 Homestead.json

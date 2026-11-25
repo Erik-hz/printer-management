@@ -105,5 +105,14 @@ class ProveedoresPreciosTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseCount('precios_consumible', 2);
+
+        $this->actingAs($admin)->post('/precios-consumibles', [
+            ...$datos,
+            'precio' => 140,
+            'vigente_desde' => '2026-11-29',
+            'vigente_hasta' => '',
+        ])->assertSessionHasErrors('vigente_desde');
+
+        $this->assertDatabaseCount('precios_consumible', 2);
     }
 }

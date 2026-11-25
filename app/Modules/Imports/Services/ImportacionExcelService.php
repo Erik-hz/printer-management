@@ -20,6 +20,7 @@ use ZipArchive;
 class ImportacionExcelService
 {
     private const HOJA = '29052025';
+    private const NOMBRES_TIPO_TONER = ['Tóner', 'Toner'];
 
     private const FECHA_PORCENTAJE = '2025-03-31 00:00:00';
 
@@ -66,7 +67,7 @@ class ImportacionExcelService
         $this->validarEncabezados($hoja);
         $impresoras = $this->mapasImpresoras();
         $tipoToner = TipoConsumible::query()
-            ->whereRaw('LOWER(nombre) = ?', ['toner'])
+            ->whereIn('nombre', self::NOMBRES_TIPO_TONER)
             ->value('id');
         $motivos = MotivoSinLectura::query()->get()->keyBy(
             fn (MotivoSinLectura $motivo) => mb_strtolower(trim($motivo->nombre))
@@ -225,7 +226,7 @@ class ImportacionExcelService
             'iniciada_en' => now(),
         ]);
 
-        $tipoToner = TipoConsumible::query()->whereRaw('LOWER(nombre) = ?', ['toner'])->first();
+        $tipoToner = TipoConsumible::query()->whereIn('nombre', self::NOMBRES_TIPO_TONER)->first();
 
         foreach ($analisis['filas'] as $fila) {
             if ($fila['errores'] !== []) {

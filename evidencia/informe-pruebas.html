@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <title>Test Documentation</title>
+        <style>
+            body {
+                text-rendering: optimizeLegibility;
+                font-family: Source SansSerif Pro, Arial, sans-serif;
+                font-variant-ligatures: common-ligatures;
+                font-kerning: normal;
+                margin-left: 2rem;
+                background-color: #fff;
+                color: #000;
+            }
+
+            body > ul > li {
+                font-size: larger;
+            }
+
+            h2 {
+                font-size: larger;
+                text-decoration-line: underline;
+                text-decoration-thickness: 2px;
+                margin: 0;
+                padding: 0.5rem 0;
+            }
+
+            ul {
+                list-style: none;
+                margin: 0 0 2rem;
+                padding: 0 0 0 1rem;
+                text-indent: -1rem;
+            }
+
+            .success:before {
+                color: #4e9a06;
+                content: '✓';
+                padding-right: 0.5rem;
+            }
+
+            .defect {
+                color: #a40000;
+            }
+
+            .defect:before {
+                color: #a40000;
+                content: '✗';
+                padding-right: 0.5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>Api Impresoras (Tests\Feature\Monitoring\ApiImpresoras)</h2>
+        <ul>
+            <li class="defect">Devuelve impresoras de red operativas con snmp no descartado e ip privada</li>
+            <li class="defect">Permite filtrar por id registrado</li>
+            <li class="defect">El listado requiere token y red local</li>
+        </ul>
+        <h2>Api Lecturas Seguridad (Tests\Feature\Monitoring\ApiLecturasSeguridad)</h2>
+        <ul>
+            <li class="defect">Sin token se rechaza</li>
+            <li class="defect">Un token incorrecto se rechaza</li>
+            <li class="defect">Sin token configurado la api rechaza todo</li>
+            <li class="defect">Una ip publica se rechaza aunque tenga el token</li>
+            <li class="defect">La ruta tiene red local limite y token</li>
+            <li class="defect">Registra una lectura valida con niveles</li>
+            <li class="defect">Una fecha en utc se guarda en hora local</li>
+            <li class="defect">Una impresora eliminada se rechaza</li>
+            <li class="defect">Una fecha futura se rechaza</li>
+            <li class="defect">Los niveles repetidos se rechazan</li>
+            <li class="defect">Una lectura duplicada se rechaza con un error de validacion</li>
+            <li class="defect">Los errores de validacion son json aunque el cliente no lo pida</li>
+        </ul>
+        <h2>Catalogos (Tests\Feature\Printers\Catalogos)</h2>
+        <ul>
+            <li class="defect">Un invitado no ve los catalogos</li>
+            <li class="defect">Un rol de consulta ve las zonas pero no puede crearlas</li>
+            <li class="defect">Los roles sin permiso no pueden gestionar catalogos</li>
+            <li class="defect">El administrador crea una zona</li>
+            <li class="defect">Una zona duplicada se rechaza sin importar las mayusculas</li>
+            <li class="defect">Renombrar una zona no choca con su propio nombre</li>
+            <li class="defect">La casilla activo sin marcar desactiva el registro</li>
+            <li class="defect">Una zona con lugares no se elimina pero una vacia si</li>
+            <li class="defect">Un lugar puede repetir nombre en otra zona pero no en la misma</li>
+            <li class="defect">Un lugar con areas no se elimina</li>
+            <li class="defect">Un area con impresoras no se elimina ni con borrado logico</li>
+            <li class="defect">Una marca duplicada se rechaza y con modelos no se elimina</li>
+            <li class="defect">Un modelo con valores invalidos se rechaza</li>
+            <li class="defect">Un modelo puede repetir nombre en otra marca pero no en la misma</li>
+            <li class="defect">El soporte snmp vacio se guarda como desconocido</li>
+            <li class="defect">Un modelo con impresoras no se elimina</li>
+            <li class="defect">El listado de modelos filtra por marca</li>
+            <li class="defect">El formulario de modelos se muestra para crear y editar</li>
+        </ul>
+        <h2>Compras (Tests\Feature\Purchasing\Compras)</h2>
+        <ul>
+            <li class="defect">El responsable crea orden y registra recepciones parciales hasta completarla</li>
+            <li class="defect">No se acepta recibir mas de lo pendiente</li>
+            <li class="defect">No se acepta repetir numero documento para el mismo proveedor</li>
+            <li class="defect">Los usuarios sin permiso no pueden gestionar compras</li>
+            <li class="defect">La pantalla de orden muestra las cantidades pendientes</li>
+        </ul>
+        <h2>Consultas Listado (Tests\Feature\Printers\ConsultasListado)</h2>
+        <ul>
+            <li class="defect">El numero de consultas del listado no crece con las impresoras</li>
+        </ul>
+        <h2>Consumibles (Tests\Feature\Inventory\Consumibles)</h2>
+        <ul>
+            <li class="defect">Un invitado no ve los consumibles</li>
+            <li class="defect">Consulta y tecnico ven el listado pero no gestionan</li>
+            <li class="defect">Administrador y responsable crean consumibles</li>
+            <li class="defect">Crear deja la existencia en cero y guarda la compatibilidad</li>
+            <li class="defect">Un codigo duplicado se rechaza sin importar las mayusculas</li>
+            <li class="defect">Los valores invalidos se rechazan</li>
+            <li class="defect">El rendimiento vacio se guarda como nulo</li>
+            <li class="defect">Editar sincroniza la compatibilidad y conserva las existencias</li>
+            <li class="defect">Editar conserva su propio codigo</li>
+            <li class="defect">Desmarcar activo desactiva el consumible</li>
+            <li class="defect">Eliminar sin dependencias es un borrado logico y libera el modelo</li>
+            <li class="defect">Un consumible con movimientos no se elimina</li>
+            <li class="defect">Un consumible con compras no se elimina</li>
+            <li class="defect">Un consumible con precios no se elimina</li>
+            <li class="defect">El codigo se puede reutilizar tras eliminar</li>
+            <li class="defect">El listado se filtra por tipo color y busqueda</li>
+            <li class="defect">El filtro de stock bajo y la etiqueta</li>
+            <li class="defect">El listado no hace consultas por fila</li>
+            <li class="defect">Los formularios se muestran</li>
+        </ul>
+        <h2>Dashboard (Tests\Feature\Reports\Dashboard)</h2>
+        <ul>
+            <li class="defect">El tecnico ve resumenes autorizados y no ve compras</li>
+            <li class="defect">El responsable ve las ordenes pendientes</li>
+            <li class="defect">Un invitado no puede ver el dashboard</li>
+        </ul>
+        <h2>Direccion Ip (Tests\Unit\DireccionIp)</h2>
+        <ul>
+            <li class="success">Quita los ceros a la izquierda de cada octeto</li>
+            <li class="success">Recorta espacios y los vacios son nulos</li>
+            <li class="success">Lo que no parece una ip se devuelve intacto</li>
+            <li class="success">Acepta ipv4 validas</li>
+            <li class="success">Rechaza valores que no son ipv4</li>
+            <li class="success">Reconoce solo rangos ipv4 privados</li>
+        </ul>
+        <h2>Example (Tests\Unit\Example)</h2>
+        <ul>
+            <li class="success">That true is true</li>
+        </ul>
+        <h2>Importacion Excel (Tests\Feature\Imports\ImportacionExcel)</h2>
+        <ul>
+            <li class="defect">La vista previa no guarda datos y la importacion registra porcentajes y motivos</li>
+            <li class="defect">Importa filas validas y registra las impresoras desconocidas como error</li>
+            <li class="defect">Reimportar el mismo archivo no duplica lecturas</li>
+            <li class="defect">Un error de base de datos no se registra como error de fila</li>
+            <li class="defect">Importa porcentajes de color por canal y reporta valores desconocidos</li>
+            <li class="defect">Solo administrador y responsable pueden importar</li>
+        </ul>
+        <h2>Impresoras (Tests\Feature\Printers\Impresoras)</h2>
+        <ul>
+            <li class="defect">Un invitado no ve las impresoras</li>
+            <li class="defect">Un rol de consulta ve el listado pero no puede crear</li>
+            <li class="defect">Listado muestra resumen y niveles de tinta de la ultima lectura</li>
+            <li class="defect">Los roles sin permiso no pueden modificar impresoras</li>
+            <li class="defect">El administrador crea una impresora de red</li>
+            <li class="defect">El administrador crea una impresora usb sin ip</li>
+            <li class="defect">Una impresora de red sin ip se rechaza</li>
+            <li class="defect">Una impresora usb con ip se rechaza</li>
+            <li class="defect">Una impresora de red con equipo conectado se rechaza</li>
+            <li class="defect">Una ip duplicada se rechaza</li>
+            <li class="defect">Una ip con ceros a la izquierda se guarda normalizada</li>
+            <li class="defect">Los valores que no son una ip se rechazan</li>
+            <li class="defect">Un nombre duplicado se rechaza sin importar las mayusculas</li>
+            <li class="defect">Nombre e ip se pueden reutilizar tras eliminar</li>
+            <li class="defect">Actualizar conserva su propia ip y permite cambiarla</li>
+            <li class="defect">Pasar de red a usb exige quitar la ip</li>
+            <li class="defect">Retirar cambia el estado y conserva la impresora</li>
+            <li class="defect">Eliminar es un borrado logico y desaparece del listado</li>
+            <li class="defect">Las claves foraneas inexistentes se rechazan</li>
+            <li class="defect">El listado se filtra por conexion marca y busqueda</li>
+            <li class="defect">Los formularios de alta y edicion se muestran</li>
+        </ul>
+        <h2>Inventario Servicio (Tests\Feature\Inventory\InventarioServicio)</h2>
+        <ul>
+            <li class="defect">La entrada manual exige motivo</li>
+            <li class="defect">La entrada manual actualiza la existencia y registra el movimiento</li>
+            <li class="defect">El servicio acepta una salida sin impresora para cargas historicas</li>
+            <li class="defect">Un ticket en blanco se guarda como nulo y uno con espacios se recorta</li>
+            <li class="defect">No se puede ajustar un consumible eliminado</li>
+        </ul>
+        <h2>Inventory Schema (Tests\Feature\InventorySchema)</h2>
+        <ul>
+            <li class="defect">Existences reject negative quantities</li>
+            <li class="defect">Movement quantity sign must match its type</li>
+            <li class="defect">Adjustment requires a non empty reason</li>
+            <li class="defect">Purchase detail can only be linked to an incoming movement</li>
+            <li class="defect">Inventory migration can be rolled back</li>
+            <li class="defect">Consumible service creates zero balance</li>
+            <li class="defect">Partial receipts update stock detail and purchase status</li>
+            <li class="defect">Receipt cannot exceed the remaining purchase quantity</li>
+            <li class="defect">Output cannot make stock negative</li>
+            <li class="defect">Inventory movements cannot be updated or deleted through eloquent</li>
+            <li class="defect">Inventory verification detects a mismatched balance</li>
+            <li class="defect">Inventory verification accepts matching balances</li>
+        </ul>
+        <h2>Lectura Restricciones (Tests\Feature\Monitoring\LecturaRestricciones)</h2>
+        <ul>
+            <li class="defect">Una lectura con contador y motivo a la vez se rechaza</li>
+            <li class="defect">Una lectura sin contador ni motivo se acepta porque trae solo niveles</li>
+            <li class="defect">Una lectura con solo motivo se acepta</li>
+            <li class="defect">Un contador en cero es valido</li>
+        </ul>
+        <h2>Lecturas (Tests\Feature\Monitoring\Lecturas)</h2>
+        <ul>
+            <li class="defect">El servicio requiere dato leido</li>
+            <li class="defect">El servicio registra contador y niveles</li>
+            <li class="defect">Consulta ve listado y tecnico registra desde la pantalla</li>
+            <li class="defect">Grafica muestra contadores y niveles de la impresora filtrada</li>
+            <li class="defect">Tecnico encola actualizacion snmp para la impresora filtrada</li>
+            <li class="defect">Tecnico encola un lote con todas las impresoras snmp disponibles</li>
+            <li class="defect">Usuario sin permiso no puede encolar actualizacion snmp</li>
+            <li class="defect">Api local registra snmp sin sesion</li>
+            <li class="defect">Api rechaza ip publica</li>
+        </ul>
+        <h2>Login (Tests\Feature\Access\Login)</h2>
+        <ul>
+            <li class="defect">Un invitado es redirigido al login</li>
+            <li class="defect">Un usuario activo con credenciales correctas ingresa</li>
+            <li class="defect">Una clave incorrecta no ingresa</li>
+            <li class="defect">Un usuario inactivo no ingresa aunque la clave sea correcta</li>
+            <li class="defect">Tras cinco intentos fallidos se bloquea incluso con la clave correcta</li>
+            <li class="defect">Los campos son obligatorios</li>
+            <li class="defect">Cerrar sesion</li>
+        </ul>
+        <h2>Monitoring Schema (Tests\Feature\MonitoringSchema)</h2>
+        <ul>
+            <li class="defect">Reading allows null counter and reason when it only has levels</li>
+            <li class="defect">Reading rejects a negative counter</li>
+            <li class="defect">Import origin requires an import record</li>
+            <li class="defect">Manual reading requires a user</li>
+            <li class="defect">Level rejects values above one</li>
+            <li class="defect">Level rejects unknown colors</li>
+            <li class="defect">Level slot is unique per reading type and color</li>
+            <li class="defect">Monitoring migration can be rolled back</li>
+            <li class="defect">Missing read reasons are seeded idempotently</li>
+        </ul>
+        <h2>Movimientos (Tests\Feature\Inventory\Movimientos)</h2>
+        <ul>
+            <li class="defect">Un invitado no ve los movimientos</li>
+            <li class="defect">Consulta y tecnico ven el listado pero no registran</li>
+            <li class="defect">Una entrada manual con motivo suma al stock</li>
+            <li class="defect">Una entrada sin motivo se rechaza</li>
+            <li class="defect">No se ingresa stock a un consumible inactivo</li>
+            <li class="defect">Una salida descuenta y guarda impresora y ticket</li>
+            <li class="defect">Una salida sin impresora se rechaza en la pantalla</li>
+            <li class="defect">Una salida a una impresora retirada se rechaza</li>
+            <li class="defect">Una salida mayor que el stock se rechaza</li>
+            <li class="defect">Una salida no lleva motivo</li>
+            <li class="defect">Un ajuste con motivo suma o resta</li>
+            <li class="defect">Los ajustes invalidos se rechazan</li>
+            <li class="defect">El tipo y la cantidad invalidos se rechazan</li>
+            <li class="defect">Un consumible inexistente o eliminado se rechaza</li>
+            <li class="defect">Un ticket demasiado largo se rechaza</li>
+            <li class="defect">No hay rutas para editar ni borrar movimientos</li>
+            <li class="defect">El listado se filtra por tipo consumible y busqueda</li>
+            <li class="defect">El listado no hace consultas por fila</li>
+            <li class="defect">El formulario se muestra para cada tipo</li>
+        </ul>
+        <h2>Pantallas (Tests\Feature\Access\Pantallas)</h2>
+        <ul>
+            <li class="defect">La pantalla de login muestra el formulario</li>
+            <li class="defect">El inicio muestra el nombre y el rol del usuario</li>
+            <li class="defect">Un usuario autenticado no ve el login</li>
+            <li class="defect">La raiz redirige al inicio</li>
+        </ul>
+        <h2>Permisos (Tests\Feature\Access\Permisos)</h2>
+        <ul>
+            <li class="defect">La matriz de permisos por rol</li>
+            <li class="defect">Un usuario inactivo no tiene ningun permiso</li>
+        </ul>
+        <h2>Permisos Inventario (Tests\Feature\Inventory\PermisosInventario)</h2>
+        <ul>
+            <li class="defect">La matriz de permisos de inventario por rol</li>
+            <li class="defect">Un usuario inactivo no tiene permisos de inventario</li>
+        </ul>
+        <h2>Proveedores Precios (Tests\Feature\Purchasing\ProveedoresPrecios)</h2>
+        <ul>
+            <li class="defect">El administrador gestiona proveedores</li>
+            <li class="defect">Se registra un precio por proveedor y se rechaza un solapamiento</li>
+        </ul>
+        <h2>Purchasing Schema (Tests\Feature\PurchasingSchema)</h2>
+        <ul>
+            <li class="defect">Purchase rejects an unknown status</li>
+            <li class="defect">Purchase detail rejects received quantity above ordered quantity</li>
+            <li class="defect">Purchase detail rejects a negative unit price</li>
+            <li class="defect">Price service rejects overlapping vigencies</li>
+            <li class="defect">Price service accepts consecutive vigencies</li>
+        </ul>
+        <h2>Rutas Protegidas (Tests\Feature\Access\RutasProtegidas)</h2>
+        <ul>
+            <li class="defect">Todas las rutas protegidas redirigen al login a un invitado</li>
+        </ul>
+        <h2>Usuarios (Tests\Feature\Access\Usuarios)</h2>
+        <ul>
+            <li class="defect">Un invitado no ve los usuarios</li>
+            <li class="defect">Los roles sin permiso no gestionan usuarios</li>
+            <li class="defect">El administrador ve el listado</li>
+            <li class="defect">El administrador crea un usuario con la contrasena cifrada</li>
+            <li class="defect">El correo se guarda en minusculas</li>
+            <li class="defect">Un correo duplicado se rechaza sin importar las mayusculas</li>
+            <li class="defect">Las contrasenas debiles se rechazan</li>
+            <li class="defect">Un rol inexistente se rechaza</li>
+            <li class="defect">Editar un usuario no toca su contrasena</li>
+            <li class="defect">Editar conserva su propio correo</li>
+            <li class="defect">El ultimo administrador no se puede desactivar</li>
+            <li class="defect">El ultimo administrador no puede cambiar de rol</li>
+            <li class="defect">Con otro administrador activo si se puede desactivar a uno</li>
+            <li class="defect">Un administrador inactivo no cuenta como respaldo</li>
+            <li class="defect">El administrador restablece la contrasena de otro usuario</li>
+            <li class="defect">Restablecer con una contrasena debil se rechaza</li>
+            <li class="defect">Cambiar la propia contrasena con la actual incorrecta se rechaza</li>
+            <li class="defect">Cambiar la propia contrasena</li>
+            <li class="defect">La nueva contrasena no puede ser igual a la actual ni debil</li>
+            <li class="defect">Cualquier rol activo accede al cambio de contrasena</li>
+            <li class="defect">Un usuario desactivado pierde el acceso con la sesion abierta</li>
+            <li class="defect">Los formularios de usuarios se muestran</li>
+        </ul>
+    </body>
+</html>

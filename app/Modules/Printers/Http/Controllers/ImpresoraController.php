@@ -26,7 +26,7 @@ class ImpresoraController extends Controller
         $busqueda = $request->string('q')->trim()->toString();
 
         $impresoras = Impresora::query()
-            ->with(['modelo.marca', 'area.lugar.zona', 'estado'])
+            ->with(['modelo.marca', 'area.lugar.zona', 'estado', 'ultimaLectura.niveles.tipoConsumible'])
             ->when($busqueda !== '', fn ($consulta) => $consulta->where(
                 fn ($donde) => $donde
                     ->where('nombre', 'like', "%{$busqueda}%")
@@ -50,11 +50,29 @@ class ImpresoraController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $niveles = $impresoras->getCollection()
+            ->flatMap(fn (Impresora $impresora) => $impresora->ultimaLectura?->niveles ?? collect());
+        $umbralCritico = (float) config('monitoring.umbrales_nivel.critico_hasta', 10);
+        $umbralBajo = (float) config('monitoring.umbrales_nivel.bajo_hasta', 25);
+        $resumenTinta = [
+            'criticos' => $niveles->filter(fn ($nivel) => $nivel->nivel !== null && (float) $nivel->nivel * 100 <= $umbralCritico)->count(),
+            'bajos' => $niveles->filter(fn ($nivel) => $nivel->nivel !== null &&
+                (float) $nivel->nivel * 100 > $umbralCritico &&
+                (float) $nivel->nivel * 100 <= $umbralBajo)->count(),
+            'normales' => $niveles->filter(fn ($nivel) => $nivel->nivel !== null && (float) $nivel->nivel * 100 > $umbralBajo)->count(),
+            'sin_dato' => $impresoras->getCollection()->filter(
+                fn (Impresora $impresora) => $impresora->ultimaLectura?->niveles
+                    ->every(fn ($nivel) => $nivel->nivel === null) !== false
+            )->count(),
+        ];
+        $resumenTinta['total'] = $resumenTinta['criticos'] + $resumenTinta['bajos'] + $resumenTinta['normales'];
+
         return view('impresoras.index', [
             'impresoras' => $impresoras,
             'zonas' => Zona::orderBy('nombre')->get(),
             'marcas' => Marca::orderBy('nombre')->get(),
             'estados' => EstadoImpresora::orderBy('id')->get(),
+            'resumenTinta' => $resumenTinta,
         ]);
     }
 

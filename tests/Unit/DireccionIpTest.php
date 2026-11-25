@@ -41,4 +41,16 @@ class DireccionIpTest extends TestCase
         $this->assertFalse(DireccionIp::esValida('USB'));
         $this->assertFalse(DireccionIp::esValida(null));
     }
+
+    public function test_reconoce_solo_rangos_ipv4_privados(): void
+    {
+        $this->assertTrue(DireccionIp::esPrivada('10.0.0.1'));
+        $this->assertTrue(DireccionIp::esPrivada('172.16.0.1'));
+        $this->assertTrue(DireccionIp::esPrivada('172.31.255.254'));
+        $this->assertTrue(DireccionIp::esPrivada('192.168.1.10'));
+        $this->assertFalse(DireccionIp::esPrivada('172.15.0.1'));
+        $this->assertFalse(DireccionIp::esPrivada('172.32.0.1'));
+        $this->assertFalse(DireccionIp::esPrivada('192.0.2.10'));
+        $this->assertFalse(DireccionIp::esPrivada('127.0.0.1'));
+    }
 }

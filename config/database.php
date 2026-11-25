@@ -44,6 +44,17 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
+        'snapshot' => [
+            'driver' => 'sqlite',
+            'database' => env('SNAPSHOT_DB', storage_path('app/private/monitoreo_snapshot.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+            'busy_timeout' => 5000,
+            'journal_mode' => 'WAL',
+            'synchronous' => 'NORMAL',
+            'transaction_mode' => 'IMMEDIATE',
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
@@ -113,6 +124,7 @@ return [
 
             'encrypt' => env('DB_ENCRYPT', 'yes'),
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'true'),
+            'odbc_driver' => env('DB_ODBC_DRIVER', 'ODBC Driver 18 for SQL Server'),
         ],
 
 

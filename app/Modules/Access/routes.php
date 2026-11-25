@@ -11,7 +11,6 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/inicio', fn () => view('inicio'))->name('inicio');
     Route::post('/salir', [LoginController::class, 'salir'])->name('logout');
 
     // Cualquier rol activo cambia su propia contraseña.

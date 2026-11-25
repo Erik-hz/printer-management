@@ -12,6 +12,8 @@
 | `/impresoras` | Todos los roles | Listado con búsqueda y filtros (zona, marca, estado, conexión) |
 | `/impresoras/crear`, `/impresoras/{id}/editar` | Administrador | Alta y edición |
 | `/impresoras/{id}/retirar`, `DELETE /impresoras/{id}` | Administrador | Retirar (estado) y eliminar (borrado lógico) |
+
+El listado muestra los niveles de tinta de la lectura más reciente por impresora. Clasifica los niveles como críticos (≤ 10%), bajos (> 10% y ≤ 25%) o normales (> 25%); los niveles faltantes se indican aparte. El resumen refleja las impresoras de la página y los filtros vigentes.
 | `/zonas`, `/zonas/{id}/lugares`, `/lugares/{id}/areas` | Consulta: todos. Gestión: administrador | Jerarquía de ubicaciones con edición en línea |
 | `/marcas`, `/modelos` | Consulta: todos. Gestión: administrador | Catálogos de marcas y modelos |
 | `/usuarios` | Administrador | Alta, edición, desactivación y restablecimiento de contraseña |

@@ -2,6 +2,7 @@
 
 use App\Modules\Access\Http\Middleware\UsuarioActivo;
 use App\Modules\Monitoring\Http\Middleware\SoloRedLocal;
+use App\Modules\Monitoring\Http\Middleware\SnapshotOnly;
 use App\Modules\Monitoring\Http\Middleware\TokenMonitoreo;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,8 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands([
+        \App\Console\Commands\CheckPrinterConnection::class,
+        \App\Console\Commands\ImportarSnapshotMonitoreo::class,
+    ])
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [UsuarioActivo::class]);
+        $middleware->web(append: [UsuarioActivo::class, SnapshotOnly::class]);
+        $middleware->api(append: [SnapshotOnly::class]);
         $middleware->alias([
             'monitoring.local' => SoloRedLocal::class,
             'monitoring.token' => TokenMonitoreo::class,

@@ -57,6 +57,64 @@
         </div>
     </form>
 
+    <section class="card mb-3" aria-labelledby="impresoras-tinta-resumen">
+        <div class="card-body">
+            <h2 class="h5 mb-1" id="impresoras-tinta-resumen">Estado de tinta</h2>
+            <p class="text-body-secondary small">
+                Niveles de la última lectura de las impresoras de esta página.
+                Crítico: ≤ {{ config('monitoring.umbrales_nivel.critico_hasta') }}%;
+                bajo: > {{ config('monitoring.umbrales_nivel.critico_hasta') }}% y ≤ {{ config('monitoring.umbrales_nivel.bajo_hasta') }}%;
+                normal: > {{ config('monitoring.umbrales_nivel.bajo_hasta') }}%.
+                La barra cuenta niveles con porcentaje disponible; impresoras sin niveles se cuentan aparte.
+            </p>
+            <div class="row g-2 mb-3">
+                <div class="col-6 col-md-3">
+                    <div class="border rounded p-2 h-100">
+                        <span class="d-block text-body-secondary small">Críticos</span>
+                        <strong>{{ $resumenTinta['criticos'] }}</strong>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="border rounded p-2 h-100">
+                        <span class="d-block text-body-secondary small">Bajos</span>
+                        <strong>{{ $resumenTinta['bajos'] }}</strong>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="border rounded p-2 h-100">
+                        <span class="d-block text-body-secondary small">Normales</span>
+                        <strong>{{ $resumenTinta['normales'] }}</strong>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="border rounded p-2 h-100">
+                        <span class="d-block text-body-secondary small">Impresoras sin niveles</span>
+                        <strong>{{ $resumenTinta['sin_dato'] }}</strong>
+                    </div>
+                </div>
+            </div>
+            @if ($resumenTinta['total'] > 0)
+                <div class="progress impresoras-tinta-resumen" role="img"
+                     aria-label="Distribución de {{ $resumenTinta['total'] }} niveles de tinta: {{ $resumenTinta['criticos'] }} críticos, {{ $resumenTinta['bajos'] }} bajos y {{ $resumenTinta['normales'] }} normales">
+                    @foreach ([
+                        ['cantidad' => $resumenTinta['criticos'], 'clase' => 'danger', 'nombre' => 'Críticos'],
+                        ['cantidad' => $resumenTinta['bajos'], 'clase' => 'warning', 'nombre' => 'Bajos'],
+                        ['cantidad' => $resumenTinta['normales'], 'clase' => 'success', 'nombre' => 'Normales'],
+                    ] as $segmento)
+                        @if ($segmento['cantidad'] > 0)
+                            <div class="progress-bar text-bg-{{ $segmento['clase'] }}"
+                                 style="width: {{ round($segmento['cantidad'] / $resumenTinta['total'] * 100, 1) }}%"
+                                 title="{{ $segmento['nombre'] }}: {{ $segmento['cantidad'] }}"
+                                 aria-hidden="true"></div>
+                        @endif
+                    @endforeach
+                </div>
+            @else
+                <p class="text-body-secondary mb-0">No hay porcentajes de tinta registrados en esta página.</p>
+            @endif
+        </div>
+    </section>
+
     <div class="table-responsive">
         <table class="table table-sm align-middle bg-body border">
             <thead>
@@ -66,6 +124,7 @@
                     <th>Ubicación</th>
                     <th>Conexión</th>
                     <th>Estado</th>
+                    <th>Niveles de tinta</th>
                     <th class="text-end">Acciones</th>
                 </tr>
             </thead>
@@ -95,6 +154,20 @@
                             @endif
                         </td>
                         <td><span class="badge text-bg-{{ $clase }}">{{ ucfirst($impresora->estado->nombre) }}</span></td>
+                        <td>
+                            @if ($impresora->ultimaLectura?->niveles->isNotEmpty())
+                                <div class="d-grid gap-2">
+                                    @foreach ($impresora->ultimaLectura->niveles as $nivel)
+                                        @include('lecturas._nivel', ['nivel' => $nivel])
+                                    @endforeach
+                                </div>
+                                <span class="d-block text-body-secondary small mt-1">
+                                    {{ $impresora->ultimaLectura->fecha_lectura->format('d/m/Y H:i') }}
+                                </span>
+                            @else
+                                <span class="text-body-secondary small">Sin dato</span>
+                            @endif
+                        </td>
                         <td class="text-end text-nowrap">
                             @can('gestionar-impresoras')
                                 <a href="{{ route('impresoras.edit', $impresora) }}"
@@ -119,7 +192,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-body-secondary py-3">No hay impresoras.</td>
+                        <td colspan="7" class="text-center text-body-secondary py-3">No hay impresoras.</td>
                     </tr>
                 @endforelse
             </tbody>

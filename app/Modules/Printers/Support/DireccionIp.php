@@ -36,4 +36,17 @@ class DireccionIp
     {
         return $valor !== null && filter_var($valor, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
     }
+
+    public static function esPrivada(?string $valor): bool
+    {
+        if (! self::esValida($valor)) {
+            return false;
+        }
+
+        [$primerOcteto, $segundoOcteto] = array_map('intval', array_slice(explode('.', $valor), 0, 2));
+
+        return $primerOcteto === 10 ||
+            ($primerOcteto === 172 && $segundoOcteto >= 16 && $segundoOcteto <= 31) ||
+            ($primerOcteto === 192 && $segundoOcteto === 168);
+    }
 }

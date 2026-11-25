@@ -1,6 +1,6 @@
 # SGIIC — Instalación del entorno
 
-Última actualización: 17/11/2026
+Última actualización: 19/11/2026
 
 ## Entorno verificado
 
@@ -13,7 +13,7 @@
 | Node / npm | 26.13.0 / 11.20.0 |
 | Vite | 7.3.8 |
 | Bootstrap | 5.3 (CSS empaquetado con Vite) |
-| Laravel | 12.72.0 (piloto) |
+| Laravel | 13.43.0 |
 | SQL Server | 2025 (17.00.1000), instancia local `MSSQLSERVER` |
 | Driver PHP | `pdo_sqlsrv` 5.13.3 (y `sqlsrv`) |
 | ODBC Driver | 17 en uso; el 18 también está instalado |
@@ -22,15 +22,21 @@
 ## Puesta en marcha
 
 1. Instalar SQL Server y SSMS (instancia propia del proyecto, sin bases institucionales).
-2. Crear las bases `laravel` y `laravel_test` y el usuario SQL con `db_owner` sobre ambas.
+2. Crear las bases `laravel` y `laravel_test` y una cuenta administrativa SQL con `db_owner` sobre ambas para migraciones y pruebas.
 3. Copiar los DLL `php_sqlsrv_83_ts_x64.dll` y `php_pdo_sqlsrv_83_ts_x64.dll` a la carpeta `ext` de PHP, añadir las dos líneas `extension=` en `php.ini` y reiniciar Laragon.
 4. Verificar con `php -m | findstr /i sqlsrv` y `php --ri pdo_sqlsrv`.
-5. Clonar o abrir el proyecto, copiar `.env.example` a `.env` y configurar `DB_CONNECTION=sqlsrv`, host, puerto 1433, base, usuario, clave, `DB_ENCRYPT=yes`, `DB_TRUST_SERVER_CERTIFICATE=true`, `APP_LOCALE=es` y `APP_FALLBACK_LOCALE=es`.
+5. Clonar o abrir el proyecto, copiar `.env.example` a `.env` y configurar `DB_CONNECTION=sqlsrv`, host, puerto 1433, base, usuario, clave, `DB_ENCRYPT=yes`, `DB_TRUST_SERVER_CERTIFICATE=true`, `APP_LOCALE=es` y `APP_FALLBACK_LOCALE=es`. Use temporalmente la cuenta administrativa al ejecutar las migraciones iniciales.
 6. `composer install`, `php artisan key:generate` y `npm install`.
 7. `php artisan migrate:fresh --seed` para crear las tablas y los datos de prueba (solo en entorno `local`).
 8. `npm run build` para compilar los estilos.
 
 Usuario de desarrollo: `admin@sgiic.test` (la clave está en el seeder y solo existe en entorno `local`).
+
+## Cuenta SQL de ejecución
+
+La aplicación en ejecución debe conectarse a `laravel` con el login `sgiic_runtime`, que solo pertenece a `db_datareader` y `db_datawriter` en esa base. No debe tener `db_owner`, `db_ddladmin` ni roles de servidor. Un administrador SQL debe ejecutar `database/administracion/crear_login_runtime.sql` en SSMS con SQLCMD Mode y reemplazar la contraseña únicamente en una ventana sin guardar.
+
+Después de ejecutar el script, configure `DB_USERNAME=sgiic_runtime` y su contraseña local en `.env`. Mantenga la cuenta administrativa separada para las migraciones; las pruebas continúan usando `laravel_test` con credenciales privilegiadas definidas localmente en `.env.testing`. No guarde la contraseña en Git ni la comparta por chat.
 
 ## Verificación
 

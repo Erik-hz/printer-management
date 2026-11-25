@@ -19,3 +19,12 @@
 3. Las lecturas quedan vinculadas al lote y tienen origen `importacion`; repetir una lectura para la misma impresora/fecha se reporta como duplicado.
 
 La aplicación requiere la extensión ZIP de PHP (`extension=zip`) para procesar `.xlsx`. En Laragon se habilita en el `php.ini` de la versión de PHP activa y luego se reinicia el servicio.
+
+## Resultado de la importación inicial
+
+El 19/11/2026 se importaron desde la hoja `29052025` las 38 filas válidas, que generaron 49 lecturas. Las 25 filas con errores quedaron solo en el reporte y se excluyeron deliberadamente para revisarlas como una actualización posterior; no se infirieron impresoras ni porcentajes.
+
+- Identificación de impresora pendiente: filas 21, 34 y 56–67.
+- Porcentaje pendiente: filas 12, 19, 20, 22, 26, 30, 34, 36–38, 43, 52 y 56–67.
+
+Al retomar esas filas, no se debe reimportar el libro completo sin revisar duplicados: las lecturas válidas ya están vinculadas al lote inicial.

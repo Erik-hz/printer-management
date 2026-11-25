@@ -1,6 +1,6 @@
 # SGIIC — Registro de decisiones técnicas
 
-Última actualización: 16/11/2026
+Última actualización: 19/11/2026
 
 ## Decisiones vigentes
 
@@ -8,7 +8,7 @@
 |---|---|---|
 | D-01 | Base de datos: SQL Server en instancia local propia | Independencia de sistemas institucionales (reglas 15 y 17) |
 | D-02 | Acceso con usuario SQL (no `sa` ni Windows) con `db_owner` solo sobre la base del proyecto | La autenticación de Windows desde PHP es más compleja |
-| D-03 | Laravel 12.72.0 para el piloto; migrar a Laravel 13 antes de la Fase 8 | Laravel 12 solo recibe parches de seguridad hasta feb. 2027 |
+| D-03 | Laravel 13.43.0, migración completada antes de iniciar la Fase 8 | Laravel 13 requiere PHP 8.3; el entorno verificado usa PHP 8.3.36 |
 | D-04 | `DB_TRUST_SERVER_CERTIFICATE=true` solo en desarrollo | ODBC 18 rechaza el certificado local |
 | D-05 | Arquitectura monolítica modular en `app/Modules/` | Mantenible, sin paquetes adicionales |
 | D-06 | Lógica de negocio en Services; controladores delgados | Regla 7 |
@@ -71,8 +71,12 @@ D-44	|Contraseñas: mínimo 10 caracteres, con una letra y un número, definidas
 | D-63	|No existen rutas para editar o borrar movimientos	El libro es inmutable; los errores se corrigen con ajustes
 | D-64 | Las existencias se verifican con `inventario:verificar` comparándolas con la suma de movimientos | Detecta inconsistencias sin modificar datos |
 | D-65 | Las vigencias de precio no se solapan para el mismo consumible y proveedor | El precio vigente se determina sin ambigüedad |
-| D-66 | La API de monitoreo usa acceso únicamente desde la red local, sin autenticación durante el piloto | Limita su exposición mientras se implementa y prueba el flujo local; no se debe publicar en Internet |
+| D-66 | La API de monitoreo solo acepta red local, exige el token Bearer `MONITOREO_TOKEN` y limita a 300 solicitudes por minuto por IP | No requiere sesión de usuario; sin token configurado rechaza todas las solicitudes y no se debe publicar en Internet |
 | D-67 | El módulo de monitoreo separa permisos de consulta y registro de lecturas | Consulta disponible para todos los roles; registro para administrador, responsable de inventario y técnico |
+| D-68 | El recolector SNMP se ejecuta manualmente, sin tarea programada | Frecuencia automática no requerida para el piloto (19/11/2026) |
+| D-69 | Los niveles SNMP válidos se normalizan como `level / max_capacity`, sin ajustar el resultado para igualar el EWS | Se conserva el dato Printer-MIB; las diferencias de presentación se documentan por modelo |
+| D-70 | El inventario SNMP (ID, IP y puerto) se consulta desde SQL mediante un GET protegido; el JSON local conserva solo mapeos de suministros | Evita duplicar direcciones IP y mantener configuraciones de impresoras desactualizadas |
+| D-71 | Un modelo se marca compatible con SNMP tras una respuesta satisfactoria de una de sus impresoras; un timeout no demuestra incompatibilidad | Se distingue `false` (no compatible confirmado) de `null` (aún desconocido) |
 ## Pendientes
 
 - Nombre de la base de datos: hoy `laravel`; considerar un nombre propio del proyecto.

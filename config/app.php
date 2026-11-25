@@ -41,6 +41,8 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+    'snapshot_only' => (bool) env('APP_SNAPSHOT_ONLY', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application URL

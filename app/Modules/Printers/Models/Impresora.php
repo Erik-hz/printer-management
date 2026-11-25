@@ -7,6 +7,7 @@ use App\Modules\Monitoring\Models\Lectura;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Impresora extends Model
@@ -56,6 +57,12 @@ class Impresora extends Model
     public function lecturas(): HasMany
     {
         return $this->hasMany(Lectura::class, 'impresora_id');
+    }
+
+    public function ultimaLectura(): HasOne
+    {
+        return $this->hasOne(Lectura::class, 'impresora_id')
+            ->ofMany(['fecha_lectura' => 'max', 'id' => 'max']);
     }
 
     public function esDeRed(): bool

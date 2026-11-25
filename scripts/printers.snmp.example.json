@@ -1,0 +1,10 @@
+{
+  "supply_mappings": [
+    {
+      "printer_id": 1,
+      "description": "Cartucho negro HP CE505X",
+      "tipo_consumible_id": 1,
+      "color": "negro"
+    }
+  ]
+}

@@ -1,3 +1,79 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 
 /* Estilos propios del sistema. */
+.lecturas-chart svg {
+    display: block;
+    height: auto;
+    min-height: 15rem;
+    overflow: visible;
+    width: 100%;
+}
+
+.lecturas-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+
+.lecturas-chart-legend:empty {
+    display: none;
+}
+
+.lecturas-chart-legend-item {
+    align-items: center;
+    display: inline-flex;
+    font-size: 0.875rem;
+    gap: 0.4rem;
+}
+
+.lecturas-chart-legend-swatch {
+    border-radius: 50%;
+    display: inline-block;
+    height: 0.65rem;
+    width: 0.65rem;
+}
+
+.nivel-tinta__muestra {
+    border-radius: 50%;
+    display: inline-block;
+    flex: 0 0 0.75rem;
+    height: 0.75rem;
+}
+
+.nivel-tinta__muestra--negro,
+.nivel-tinta__barra--negro {
+    background-color: #343a40;
+}
+
+.nivel-tinta__muestra--cian,
+.nivel-tinta__barra--cian {
+    background-color: #0aa2c0;
+}
+
+.nivel-tinta__muestra--magenta,
+.nivel-tinta__barra--magenta {
+    background-color: #d63384;
+}
+
+.nivel-tinta__muestra--amarillo,
+.nivel-tinta__barra--amarillo {
+    background-color: #d19b00;
+}
+
+.nivel-tinta__muestra--tricolor,
+.nivel-tinta__barra--tricolor {
+    background: linear-gradient(90deg, #0aa2c0 0 33%, #d63384 33% 66%, #d19b00 66%);
+}
+
+.nivel-tinta__muestra--neutral,
+.nivel-tinta__barra--neutral {
+    background-color: #6c757d;
+}
+
+.nivel-tinta__progreso {
+    height: 0.45rem;
+}
+
+.impresoras-tinta-resumen {
+    height: 0.85rem;
+}
