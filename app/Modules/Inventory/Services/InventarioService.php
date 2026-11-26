@@ -100,6 +100,7 @@ class InventarioService
         int $usuarioId,
         ?string $ticket = null,
         ?DateTimeInterface $fechaMovimiento = null,
+        ?int $importacionId = null,
     ): MovimientoInventario {
         $this->validarCantidadPositiva($cantidad);
         $motivo = $this->motivoObligatorio(
@@ -115,6 +116,7 @@ class InventarioService
             $usuarioId,
             $ticket,
             $fechaMovimiento,
+            $importacionId,
         ): MovimientoInventario {
             $this->validarConsumible($consumibleId, exigirActivo: true);
 
@@ -130,6 +132,7 @@ class InventarioService
                 'motivo' => $motivo,
                 'usuario_id' => $usuarioId,
                 'ticket' => $ticket,
+                'importacion_id' => $importacionId,
                 'fecha_movimiento' => $fechaMovimiento ?? now(),
             ]);
         });

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Imports\Http\Requests\ArchivoImportacionRequest;
 use App\Modules\Imports\Models\Importacion;
 use App\Modules\Imports\Services\ImportacionExcelService;
+use App\Modules\Imports\Services\ImportacionConsumiblesExcelService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -16,7 +17,10 @@ class ImportacionController extends Controller
 {
     private const SESION_PREVIA = 'importacion_excel_previa';
 
-    public function __construct(private readonly ImportacionExcelService $importaciones) {}
+    public function __construct(
+        private readonly ImportacionExcelService $importaciones,
+        private readonly ImportacionConsumiblesExcelService $importacionConsumibles,
+    ) {}
 
     public function index(): View
     {
@@ -37,7 +41,10 @@ class ImportacionController extends Controller
     public function analizar(ArchivoImportacionRequest $request): RedirectResponse
     {
         $archivo = $request->file('archivo');
-        $analisis = $this->importaciones->analizar($archivo->getRealPath());
+        $tipoImportacion = $request->validated()['tipo_importacion'] ?? 'lecturas';
+        $analisis = $tipoImportacion === 'consumibles'
+            ? $this->importacionConsumibles->analizar($archivo->getRealPath())
+            : $this->importaciones->analizar($archivo->getRealPath());
         $token = (string) Str::uuid();
         $nombre = basename(str_replace('\\', '/', $archivo->getClientOriginalName()));
         $nombre = Str::limit($nombre, 255, '');
@@ -88,7 +95,10 @@ class ImportacionController extends Controller
         }
 
         $datos = json_decode(Storage::disk('local')->get($ruta), true, flags: JSON_THROW_ON_ERROR);
-        $importacion = $this->importaciones->ejecutar(
+        $servicio = ($datos['analisis']['formato'] ?? null) === 'inventario-consumibles'
+            ? $this->importacionConsumibles
+            : $this->importaciones;
+        $importacion = $servicio->ejecutar(
             $datos['analisis'],
             $datos['archivo_nombre'],
             (int) request()->user()->id,

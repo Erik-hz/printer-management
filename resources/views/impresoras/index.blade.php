@@ -116,11 +116,12 @@
     </section>
 
     <div class="table-responsive">
-        <table class="table table-sm align-middle bg-body border">
+        <table class="table table-sm align-middle bg-body border impresoras-tabla">
             <thead>
                 <tr>
                     <th>Nombre</th>
                     <th>Modelo</th>
+                    <th>IP</th>
                     <th>Ubicación</th>
                     <th>Conexión</th>
                     <th>Estado</th>
@@ -138,9 +139,24 @@
                             default => 'light',
                         };
                     @endphp
-                    <tr>
+                    @php $detalleId = 'detalle-impresora-'.$impresora->id; @endphp
+                    <tr class="impresora-fila" data-impresora-row tabindex="0" aria-expanded="false"
+                        aria-controls="{{ $detalleId }}"
+                        aria-label="Mostrar detalles de {{ $impresora->nombre }}">
                         <td>{{ $impresora->nombre }}</td>
                         <td>{{ $impresora->modelo->marca->nombre }} {{ $impresora->modelo->nombre }}</td>
+                        <td class="text-nowrap">
+                            @if ($impresora->direccion_ip)
+                                <a href="http://{{ $impresora->direccion_ip }}" target="_blank" rel="noopener noreferrer"
+                                   aria-label="Abrir la interfaz web de {{ $impresora->nombre }} en una pestaña nueva"
+                                   title="Abrir {{ $impresora->direccion_ip }} en el navegador">
+                                    <span class="font-monospace">{{ $impresora->direccion_ip }}</span>
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                            @else
+                                <span class="text-body-secondary">—</span>
+                            @endif
+                        </td>
                         <td>
                             {{ $impresora->area->lugar->zona->nombre }} ›
                             {{ $impresora->area->lugar->nombre }} ›
@@ -190,9 +206,74 @@
                             @endcan
                         </td>
                     </tr>
+                    <tr id="{{ $detalleId }}" class="impresora-detalle d-none" data-impresora-detail>
+                        <td colspan="8">
+                            <section class="impresora-detalle__panel" aria-label="Detalles de {{ $impresora->nombre }}">
+                                <div class="impresora-detalle__ilustracion">
+                                    <svg viewBox="0 0 240 190" role="img" aria-label="Ilustración de una impresora">
+                                        <path d="M59 48h122v46H59z" fill="#dce5ed" stroke="#8194a5" stroke-width="3"/>
+                                        <path d="M45 83h150a18 18 0 0 1 18 18v43H27v-43a18 18 0 0 1 18-18Z" fill="#526b80"/>
+                                        <path d="M54 112h132v57H54z" fill="#eef2f5" stroke="#8194a5" stroke-width="3"/>
+                                        <path d="M71 126h98v7H71zm0 15h76v5H71z" fill="#afbdc8"/>
+                                        <path d="M78 37h84v41H78z" fill="#f7f9fa" stroke="#8194a5" stroke-width="3"/>
+                                        <rect x="127" y="49" width="24" height="13" rx="2" fill="#0d6efd"/>
+                                        <circle cx="48" cy="103" r="5" fill="#8de0a1"/>
+                                        <path d="M71 169v10h98v-10" fill="#c3ced7" stroke="#8194a5" stroke-width="3"/>
+                                    </svg>
+                                    <span>{{ $impresora->modelo->marca->nombre }} {{ $impresora->modelo->nombre }}</span>
+                                </div>
+
+                                <div class="impresora-detalle__datos">
+                                    <h2 class="h6 mb-3">{{ $impresora->nombre }} <span class="text-body-secondary fw-normal">· Información del dispositivo</span></h2>
+                                    <dl class="row small mb-0">
+                                        <dt class="col-sm-5 text-body-secondary">Dirección IP</dt>
+                                        <dd class="col-sm-7">{{ $impresora->direccion_ip ?? '—' }}</dd>
+                                        <dt class="col-sm-5 text-body-secondary">Conexión</dt>
+                                        <dd class="col-sm-7">{{ $impresora->esDeRed() ? 'Red' : 'USB' }}{{ $impresora->equipo_conectado ? ' · '.$impresora->equipo_conectado : '' }}</dd>
+                                        <dt class="col-sm-5 text-body-secondary">Número de serie</dt>
+                                        <dd class="col-sm-7">{{ $impresora->numero_serie ?: '—' }}</dd>
+                                        <dt class="col-sm-5 text-body-secondary">Ubicación</dt>
+                                        <dd class="col-sm-7">{{ $impresora->area->lugar->zona->nombre }} · {{ $impresora->area->lugar->nombre }} · {{ $impresora->area->nombre }}</dd>
+                                        <dt class="col-sm-5 text-body-secondary">Tecnología / impresión</dt>
+                                        <dd class="col-sm-7">{{ \App\Modules\Printers\Models\ModeloImpresora::TECNOLOGIAS[$impresora->modelo->tecnologia] ?? ucfirst($impresora->modelo->tecnologia) }} · {{ \App\Modules\Printers\Models\ModeloImpresora::TIPOS_IMPRESION[$impresora->modelo->tipo_impresion] ?? ucfirst($impresora->modelo->tipo_impresion) }}</dd>
+                                        <dt class="col-sm-5 text-body-secondary">Compatibilidad SNMP</dt>
+                                        <dd class="col-sm-7">{{ $impresora->modelo->snmp_soportado === null ? 'Sin confirmar' : ($impresora->modelo->snmp_soportado ? 'Compatible' : 'No compatible') }}</dd>
+                                        @if ($impresora->observaciones)
+                                            <dt class="col-sm-5 text-body-secondary">Observaciones</dt>
+                                            <dd class="col-sm-7">{{ $impresora->observaciones }}</dd>
+                                        @endif
+                                    </dl>
+                                </div>
+
+                                <div class="impresora-detalle__lectura">
+                                    <h3 class="h6 mb-3">Última lectura</h3>
+                                    @if ($impresora->ultimaLectura)
+                                        <p class="small text-body-secondary mb-3">
+                                            {{ $impresora->ultimaLectura->fecha_lectura->format('d/m/Y H:i') }}
+                                            · {{ ucfirst($impresora->ultimaLectura->origen) }}
+                                            @if ($impresora->ultimaLectura->contador_paginas !== null)
+                                                <br>Contador: <strong class="text-body">{{ number_format($impresora->ultimaLectura->contador_paginas, 0, ',', '.') }}</strong> páginas
+                                            @endif
+                                        </p>
+                                        @if ($impresora->ultimaLectura->niveles->isNotEmpty())
+                                            <div class="d-grid gap-2">
+                                                @foreach ($impresora->ultimaLectura->niveles as $nivel)
+                                                    @include('lecturas._nivel', ['nivel' => $nivel])
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="small text-body-secondary">La lectura no contiene niveles de consumible.</span>
+                                        @endif
+                                    @else
+                                        <span class="small text-body-secondary">No hay lecturas registradas.</span>
+                                    @endif
+                                </div>
+                            </section>
+                        </td>
+                    </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-body-secondary py-3">No hay impresoras.</td>
+                        <td colspan="8" class="text-center text-body-secondary py-3">No hay impresoras.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -78,7 +78,7 @@
                             @endif
                         </td>
                         <td>{{ $consumible->tipo->nombre }}</td>
-                        <td>{{ \App\Modules\Inventory\Models\Consumible::COLORES[$consumible->color] ?? $consumible->color }}</td>
+                        <td>{{ $consumible->etiquetaColor() }}</td>
                         <td class="text-end">
                             {{ $consumible->existencia?->cantidad ?? 0 }}
                             @if ($consumible->estaBajoMinimo())

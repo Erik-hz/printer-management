@@ -10,16 +10,20 @@ use App\Modules\Monitoring\Models\MotivoSinLectura;
 use App\Modules\Monitoring\Services\LecturaService;
 use App\Modules\Printers\Models\Impresora;
 use App\Modules\Printers\Support\DireccionIp;
+use DateTimeImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Throwable;
 use ZipArchive;
 
 class ImportacionExcelService
 {
-    private const HOJA = '29052025';
+    private const FORMATO_INSUMOS = 'insumos6-10-fecha';
+
+    private const FORMATO_INSUMOS_ENCABEZADO = 'insumos6-10-encabezado';
     private const NOMBRES_TIPO_TONER = ['Tóner', 'Toner'];
 
     private const FECHA_PORCENTAJE = '2025-03-31 00:00:00';
@@ -34,7 +38,7 @@ class ImportacionExcelService
      * Lee únicamente los porcentajes de marzo y los marcadores de lectura sin dato.
      * Las cantidades de consumo anual y de mayo no se convierten en movimientos.
      *
-     * @return array{hoja: string, filas_leidas: int, filas_omitidas: int, filas: array<int, array<string, mixed>>}
+     * @return array{hoja: string, formato: string, filas_leidas: int, filas_omitidas: int, filas: array<int, array<string, mixed>>}
      */
     public function analizar(string $rutaArchivo): array
     {
@@ -47,24 +51,60 @@ class ImportacionExcelService
         $lector = IOFactory::createReader('Xlsx');
         $lector->setReadDataOnly(true);
         $nombresHojas = $lector->listWorksheetNames($rutaArchivo);
+        $candidatas = [];
+        foreach ($nombresHojas as $nombre) {
+            $lector->setLoadSheetsOnly($nombre);
+            $libroCandidato = $lector->load($rutaArchivo);
+            $hojaCandidata = $libroCandidato->getSheetByName($nombre);
+            if ($hojaCandidata instanceof Worksheet) {
+                $formato = match (true) {
+                    $this->coincideFormatoInsumos($hojaCandidata) => self::FORMATO_INSUMOS,
+                    $this->coincideFormatoInsumosEncabezado($hojaCandidata) => self::FORMATO_INSUMOS_ENCABEZADO,
+                    $this->coincideFormatoHistorico($hojaCandidata) => 'historico',
+                    default => null,
+                };
+                if ($formato !== null) {
+                    $candidatas[] = ['hoja' => $nombre, 'formato' => $formato];
+                }
+            }
+            $libroCandidato->disconnectWorksheets();
+        }
 
-        if (! in_array(self::HOJA, $nombresHojas, true)) {
+        if ($candidatas === []) {
             throw ValidationException::withMessages([
-                'archivo' => 'El Excel no contiene la hoja requerida «29052025».',
+                'archivo' => 'No se encontró una hoja con el formato admitido. Se revisan los encabezados, sin importar el nombre de la pestaña.',
+            ]);
+        }
+        if (count($candidatas) > 1) {
+            $nombres = implode(', ', array_column($candidatas, 'hoja'));
+            throw ValidationException::withMessages([
+                'archivo' => "Se encontraron varias hojas con formato importable ({$nombres}). Deje una sola hoja válida en el libro.",
             ]);
         }
 
-        $lector->setLoadSheetsOnly(self::HOJA);
+        ['hoja' => $nombreHoja, 'formato' => $formato] = $candidatas[0];
+
+        $lector->setLoadSheetsOnly($nombreHoja);
         $libro = $lector->load($rutaArchivo);
-        $hoja = $libro->getSheetByName(self::HOJA);
+        $hoja = $libro->getSheetByName($nombreHoja);
 
         if (! $hoja instanceof Worksheet) {
             throw ValidationException::withMessages([
-                'archivo' => 'No se pudo abrir la hoja «29052025».',
+                'archivo' => 'No se pudo abrir la hoja identificada por su formato.',
             ]);
         }
 
-        $this->validarEncabezados($hoja);
+        if (str_starts_with($formato, 'insumos6-10')) {
+            $fechaEncabezado = $formato === self::FORMATO_INSUMOS_ENCABEZADO
+                ? $this->fechaDesdeEncabezado((string) $hoja->getCell('K1')->getFormattedValue())
+                : null;
+            $analisis = $this->analizarInsumos($hoja, $formato, $fechaEncabezado);
+            $analisis['hoja'] = $nombreHoja;
+            $libro->disconnectWorksheets();
+
+            return $analisis;
+        }
+
         $impresoras = $this->mapasImpresoras();
         $tipoToner = TipoConsumible::query()
             ->whereIn('nombre', self::NOMBRES_TIPO_TONER)
@@ -203,7 +243,8 @@ class ImportacionExcelService
         $libro->disconnectWorksheets();
 
         return [
-            'hoja' => self::HOJA,
+            'hoja' => $nombreHoja,
+            'formato' => 'historico',
             'filas_leidas' => count($filas),
             'filas_omitidas' => $filasOmitidas,
             'filas' => $filas,
@@ -211,7 +252,241 @@ class ImportacionExcelService
     }
 
     /**
-     * @param  array{hoja: string, filas_leidas: int, filas_omitidas: int, filas: array<int, array<string, mixed>>}  $analisis
+     * Analiza la hoja vigente de Insumos 6-10. Importa solo porcentajes como lecturas;
+     * el consumo anual no tiene un destino en el esquema y se informa como omitido.
+     *
+     * @return array{hoja: string, formato: string, filas_leidas: int, filas_omitidas: int, filas: array<int, array<string, mixed>>}
+     */
+    private function analizarInsumos(Worksheet $hoja, string $formato, ?string $fechaEncabezado = null): array
+    {
+        $impresoras = $this->mapasImpresoras();
+        $tipoToner = TipoConsumible::query()
+            ->whereIn('nombre', self::NOMBRES_TIPO_TONER)
+            ->value('id');
+        $lecturasExistentes = $this->clavesLecturasImportadas();
+        $filas = [];
+        $filasOmitidas = 0;
+        $vistasEnArchivo = [];
+        $fechaEnColumna = $formato === self::FORMATO_INSUMOS;
+        $columnaFinal = $fechaEnColumna ? 'O' : 'N';
+        $columnaNombre = $fechaEnColumna ? 'E' : 'D';
+        $columnaIp = $fechaEnColumna ? 'H' : 'G';
+        $columnaTipo = $fechaEnColumna ? 'D' : 'C';
+        $columnaPorcentaje = $fechaEnColumna ? 'K' : 'J';
+
+        for ($numeroFila = 3; $numeroFila <= $hoja->getHighestDataRow(); $numeroFila++) {
+            $valores = [];
+            foreach (range('A', $columnaFinal) as $columna) {
+                $valores[$columna] = trim((string) $hoja->getCell($columna.$numeroFila)->getFormattedValue());
+            }
+
+            if (! $this->filaTieneDatos($valores)) {
+                continue;
+            }
+
+            $porcentajeBruto = $valores[$columnaPorcentaje];
+            if ($porcentajeBruto === '') {
+                $filasOmitidas++;
+
+                continue;
+            }
+
+            $nombre = $valores[$columnaNombre];
+            $direccionIp = DireccionIp::normalizar($valores[$columnaIp]);
+            $impresora = $this->buscarImpresora($nombre, $direccionIp, $impresoras);
+            $fecha = $fechaEnColumna ? $this->fechaImportada($valores['A']) : $fechaEncabezado;
+            $valorFecha = $fechaEnColumna ? $valores['A'] : (string) $hoja->getCell('K1')->getFormattedValue();
+            $niveles = $this->nivelesPorcentajeActual($porcentajeBruto, mb_strtoupper($valores[$columnaTipo]));
+            $errores = [];
+
+            if ($fecha === null) {
+                $errores[] = [
+                    'columna' => 'FECHA',
+                    'valor' => $valorFecha,
+                    'mensaje' => 'La fecha debe tener formato día/mes/año.',
+                ];
+            }
+            if ($impresora === null) {
+                $errores[] = [
+                    'columna' => 'NOMBRE/IP',
+                    'valor' => $nombre ?: $direccionIp,
+                    'mensaje' => 'No se encontró una impresora registrada por nombre o IP. Regístrela antes de importar.',
+                ];
+            }
+            if ($niveles === null) {
+                $errores[] = [
+                    'columna' => 'Porcentaje Actual',
+                    'valor' => $porcentajeBruto,
+                    'mensaje' => 'Use un porcentaje entre 0 y 100; en impresoras a color puede indicar hasta cuatro valores en orden negro, cian, magenta y amarillo.',
+                ];
+            }
+            if ($niveles !== null && $tipoToner === null) {
+                $errores[] = [
+                    'columna' => 'TIPO',
+                    'valor' => 'toner',
+                    'mensaje' => 'No existe el tipo de consumible «toner» en el catálogo.',
+                ];
+            }
+
+            $lecturas = [];
+            if ($fecha !== null && $impresora !== null && $niveles !== null) {
+                $clave = $this->claveLectura((int) $impresora->id, $fecha);
+                if (isset($vistasEnArchivo[$clave])) {
+                    $errores[] = [
+                        'columna' => 'NOMBRE/IP',
+                        'valor' => $nombre ?: $direccionIp,
+                        'mensaje' => 'La misma impresora aparece más de una vez para la fecha indicada.',
+                    ];
+                } elseif (isset($lecturasExistentes[$clave])) {
+                    $errores[] = [
+                        'columna' => 'FECHA',
+                        'valor' => $valorFecha,
+                        'mensaje' => 'Ya existe una lectura importada para esta impresora y fecha.',
+                    ];
+                } else {
+                    $vistasEnArchivo[$clave] = true;
+                    $lecturas[] = [
+                        'fecha_lectura' => $fecha,
+                        'tipo' => 'nivel',
+                        'niveles' => $niveles,
+                    ];
+                }
+            }
+
+            $filas[] = [
+                'fila' => $numeroFila,
+                'impresora' => $nombre ?: '—',
+                'impresora_id' => $impresora?->id,
+                'lecturas' => $lecturas,
+                'errores' => $errores,
+            ];
+        }
+
+        return [
+            'hoja' => $hoja->getTitle(),
+            'formato' => $formato,
+            'filas_leidas' => count($filas),
+            'filas_omitidas' => $filasOmitidas,
+            'filas' => $filas,
+        ];
+    }
+
+    private function coincideFormatoInsumos(Worksheet $hoja): bool
+    {
+        $esperados = [
+            'A' => 'FECHA', 'B' => 'ZONA', 'C' => 'LUGAR', 'D' => 'TIPO', 'E' => 'NOMBRE',
+            'F' => 'MARCA', 'G' => 'MODEL', 'H' => 'IP', 'I' => 'AREA', 'J' => 'TONER',
+        ];
+        foreach ($esperados as $columna => $esperado) {
+            $actual = mb_strtoupper(trim((string) $hoja->getCell($columna.'2')->getFormattedValue()));
+            if ($actual !== $esperado) {
+                return false;
+            }
+        }
+
+        $porcentaje = mb_strtoupper(trim((string) $hoja->getCell('K2')->getFormattedValue()));
+        $anual = mb_strtoupper(trim((string) $hoja->getCell('L1')->getFormattedValue()));
+        $colores = array_map(
+            fn (string $columna) => mb_strtoupper(trim((string) $hoja->getCell($columna.'2')->getFormattedValue())),
+            ['L', 'M', 'N', 'O']
+        );
+        if (! str_contains($porcentaje, 'PORCENTAJE ACTUAL')
+            || $anual !== 'CONSUMO ANUAL'
+            || $colores !== ['NEGRO', 'CYAN', 'MAGENTA', 'AMARILLO']) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function coincideFormatoInsumosEncabezado(Worksheet $hoja): bool
+    {
+        $esperados = [
+            'A' => 'ZONA', 'B' => 'LUGAR', 'C' => 'TIPO', 'D' => 'NOMBRE', 'E' => 'MARCA',
+            'F' => 'MODEL', 'G' => 'IP', 'H' => 'AREA', 'I' => 'TONER',
+        ];
+        foreach ($esperados as $columna => $esperado) {
+            $actual = mb_strtoupper(trim((string) $hoja->getCell($columna.'2')->getFormattedValue()));
+            if ($actual !== $esperado) {
+                return false;
+            }
+        }
+
+        $porcentaje = mb_strtoupper(trim((string) $hoja->getCell('J2')->getFormattedValue()));
+        $colores = array_map(
+            fn (string $columna) => mb_strtoupper(trim((string) $hoja->getCell($columna.'2')->getFormattedValue())),
+            ['K', 'L', 'M', 'N']
+        );
+        $encabezadoFecha = mb_strtoupper(trim((string) $hoja->getCell('K1')->getFormattedValue()));
+
+        return str_contains($porcentaje, 'PORCENTAJE ACTUAL')
+            && $colores === ['NEGRO', 'CYAN', 'MAGENTA', 'AMARILLO']
+            && str_contains($encabezadoFecha, 'CONSUMO')
+            && $this->fechaDesdeEncabezado($encabezadoFecha) !== null;
+    }
+
+    /** @return list<array{color: string, nivel: float}>|null */
+    private function nivelesPorcentajeActual(string $valor, string $tipo): ?array
+    {
+        if (! in_array($tipo, ['BN', 'CL'], true)) {
+            return null;
+        }
+
+        $partes = array_map('trim', explode(',', $valor));
+        if (count($partes) < 1 || count($partes) > 4 || in_array('', $partes, true)) {
+            return null;
+        }
+        if ($tipo === 'BN' && count($partes) !== 1) {
+            return null;
+        }
+
+        $colores = ['negro', 'cian', 'magenta', 'amarillo'];
+        $niveles = [];
+        foreach ($partes as $indice => $parte) {
+            $porcentajeExplicito = str_ends_with($parte, '%');
+            $numeroTexto = $porcentajeExplicito ? trim(substr($parte, 0, -1)) : $parte;
+            if (! is_numeric($numeroTexto)) {
+                return null;
+            }
+
+            $numero = (float) $numeroTexto;
+            if ($numero < 0 || $numero > 100) {
+                return null;
+            }
+
+            $esFraccion = ! $porcentajeExplicito && count($partes) === 1 && $numero <= 1;
+            $color = count($partes) === 1 && $tipo === 'CL' ? 'no_aplica' : $colores[$indice];
+            $niveles[] = [
+                'color' => $color,
+                'nivel' => round($esFraccion ? $numero : $numero / 100, 4),
+            ];
+        }
+
+        return $niveles;
+    }
+
+    private function fechaImportada(string $valor): ?string
+    {
+        $fecha = DateTimeImmutable::createFromFormat('!d/m/Y', $valor);
+        $errores = DateTimeImmutable::getLastErrors();
+        if ($fecha === false || ($errores !== false && ($errores['warning_count'] > 0 || $errores['error_count'] > 0))) {
+            return null;
+        }
+
+        return $fecha->format('Y-m-d H:i:s');
+    }
+
+    private function fechaDesdeEncabezado(string $valor): ?string
+    {
+        if (! preg_match('/\b(\d{1,2}\/\d{1,2}\/\d{4})\b/', $valor, $coincidencia)) {
+            return null;
+        }
+
+        return $this->fechaImportada($coincidencia[1]);
+    }
+
+    /**
+     * @param  array{hoja: string, formato?: string, filas_leidas: int, filas_omitidas: int, filas: array<int, array<string, mixed>>}  $analisis
      */
     public function ejecutar(array $analisis, string $nombreArchivo, int $usuarioId): Importacion
     {
@@ -227,6 +502,7 @@ class ImportacionExcelService
         ]);
 
         $tipoToner = TipoConsumible::query()->whereIn('nombre', self::NOMBRES_TIPO_TONER)->first();
+        $nombreHoja = $analisis['hoja'];
 
         foreach ($analisis['filas'] as $fila) {
             if ($fila['errores'] !== []) {
@@ -237,7 +513,7 @@ class ImportacionExcelService
             }
 
             try {
-                DB::transaction(function () use ($fila, $importacion, $tipoToner): void {
+                DB::transaction(function () use ($fila, $importacion, $tipoToner, $nombreHoja): void {
                     foreach ($fila['lecturas'] as $lectura) {
                         $attributes = [
                             'impresora_id' => $fila['impresora_id'],
@@ -245,7 +521,7 @@ class ImportacionExcelService
                             'origen' => 'importacion',
                             'contador_paginas' => null,
                             'motivo_sin_lectura_id' => null,
-                            'observaciones' => "Importación Excel, hoja 29052025, fila {$fila['fila']}.",
+                            'observaciones' => "Importación Excel, hoja {$nombreHoja}, fila {$fila['fila']}.",
                             'usuario_id' => null,
                             'importacion_id' => $importacion->id,
                             'niveles' => [],
@@ -301,6 +577,12 @@ class ImportacionExcelService
                     'mensaje' => 'No se pudo guardar la fila por una restricción de datos. Revise las referencias y vuelva a analizar el archivo.',
                 ]]);
                 $importacion->filas_con_error++;
+            } catch (Throwable $exception) {
+                $importacion->estado = 'fallida';
+                $importacion->finalizada_en = now();
+                $importacion->save();
+
+                throw $exception;
             }
         }
 
@@ -311,7 +593,7 @@ class ImportacionExcelService
         return $importacion;
     }
 
-    private function validarEncabezados(Worksheet $hoja): void
+    private function coincideFormatoHistorico(Worksheet $hoja): bool
     {
         $nombre = mb_strtoupper(trim((string) $hoja->getCell('D2')->getFormattedValue()));
         $ip = mb_strtoupper(trim((string) $hoja->getCell('G2')->getFormattedValue()));
@@ -319,17 +601,11 @@ class ImportacionExcelService
         $fechaConsumo = mb_strtoupper(trim((string) $hoja->getCell('O1')->getFormattedValue()));
         $colorNegro = mb_strtoupper(trim((string) $hoja->getCell('O2')->getFormattedValue()));
 
-        if (
-            $nombre !== 'NOMBRE'
-            || $ip !== 'IP'
-            || ! str_contains($porcentaje, 'PORCENTAJE ACTUAL')
-            || ! str_contains($fechaConsumo, '29/05/2025')
-            || $colorNegro !== 'NEGRO'
-        ) {
-            throw ValidationException::withMessages([
-                'archivo' => 'La estructura de la hoja «29052025» no coincide con la plantilla de importación esperada.',
-            ]);
-        }
+        return $nombre === 'NOMBRE'
+            && $ip === 'IP'
+            && str_contains($porcentaje, 'PORCENTAJE ACTUAL')
+            && str_contains($fechaConsumo, '29/05/2025')
+            && $colorNegro === 'NEGRO';
     }
 
     /** @return array<string, mixed> */
@@ -497,11 +773,6 @@ class ImportacionExcelService
 
         Lectura::query()
             ->where('origen', 'importacion')
-            ->where(function ($consulta): void {
-                $consulta
-                    ->whereDate('fecha_lectura', substr(self::FECHA_PORCENTAJE, 0, 10))
-                    ->orWhereDate('fecha_lectura', substr(self::FECHA_MOTIVO, 0, 10));
-            })
             ->get(['impresora_id', 'fecha_lectura'])
             ->each(function (Lectura $lectura) use (&$claves): void {
                 $claves[$this->claveLectura(

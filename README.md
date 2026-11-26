@@ -1,59 +1,59 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Print Manager
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación web para administrar impresoras y sus operaciones: inventario de consumibles, compras, lecturas de uso y monitoreo SNMP. Está construida con Laravel 13, PHP 8.3, SQL Server y Bootstrap 5.
 
-## About Laravel
+## Módulos
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Acceso:** inicio de sesión, usuarios, roles y permisos.
+- **Impresoras:** impresoras, marcas, modelos y ubicación (zonas, lugares y áreas).
+- **Inventario:** catálogo de consumibles, existencias y movimientos con historial inmutable.
+- **Compras:** proveedores, precios y órdenes con recepción parcial.
+- **Monitoreo:** lecturas manuales o SNMP de contadores y niveles de consumibles.
+- **Importaciones:** análisis e importación de lecturas históricas desde Excel.
+- **Reportes:** dashboard e informes de estado.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+La aplicación es un monolito modular: rutas, controladores, servicios y modelos de cada dominio viven en `app/Modules/`. Las reglas de negocio se concentran en servicios y la base de datos aplica restricciones adicionales.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Requisitos
 
-## Learning Laravel
+Consulta [docs/instalacion.md](docs/instalacion.md) para las versiones y la configuración detallada. El entorno verificado usa PHP 8.3 con `pdo_sqlsrv`/`sqlsrv`, SQL Server, Composer, Node.js/npm y PowerShell. La extensión ZIP de PHP es necesaria para importar Excel.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Inicio local
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. Configura SQL Server y las bases `laravel` y `laravel_test` según la guía de instalación.
+2. Prepara la configuración local en `.env`; no guardes secretos en Git.
+3. Instala dependencias y genera la clave de Laravel:
 
-## Laravel Sponsors
+   ```powershell
+   composer install
+   Copy-Item .env.example .env
+   php artisan key:generate
+   npm install
+   ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+4. En una base de desarrollo nueva, ejecuta `php artisan migrate --seed` y luego `npm run build`.
+5. Inicia la web con `php artisan serve`. Para procesar lecturas SNMP encoladas, también debe estar activo `php artisan queue:work --tries=1`.
 
-### Premium Partners
+`migrate:fresh` elimina y reconstruye todas las tablas; úsalo únicamente contra una base descartable. Las pruebas están protegidas para ejecutarse solo contra `laravel_test`.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Monitoreo SNMP
 
-## Contributing
+El recolector está en `scripts/collect_snmp_v1.ps1` y el protocolo SNMPv1 en `scripts/SnmpV1.psm1`. El script obtiene por API las impresoras elegibles desde SQL, consulta sus equipos y envía las lecturas a Laravel. La API requiere `MONITOREO_TOKEN`; configura también la comunidad SNMP y la URL en el entorno local.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Usa `scripts/printers.snmp.example.json` como plantilla y crea `scripts/printers.snmp.local.json` con los mapeos reales. El archivo local está excluido de Git. Para inspeccionar sin registrar lecturas:
 
-## Code of Conduct
+```powershell
+.\scripts\collect_snmp_v1.ps1 -WhatIf
+.\scripts\collect_snmp_v1.ps1 -PrinterId 17 -WhatIf
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+El sondeo es manual; el acceso SNMP debe limitarse a una red privada autorizada.
 
-## Security Vulnerabilities
+## Documentación
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- [Instalación y configuración](docs/instalacion.md)
+- [Diagrama entidad-relación](docs/diagrama-er.md)
+- [Decisiones técnicas](docs/decisiones.md)
+- [Fases de impresoras, inventario, monitoreo, compras e importación](docs/fase3-gestion-impresoras.md), [Fase 4](docs/fase4-inventario.md), [Fase 5](docs/fase5-monitoreo.md), [Fase 6](docs/fase6-compras.md) y [Fase 7](docs/fase7-importacion.md)
+- [Dashboard](docs/dashboard.md)
+- [Guía de entrega y traslado](docs/entrega-print-manager-2026-11-25.md)

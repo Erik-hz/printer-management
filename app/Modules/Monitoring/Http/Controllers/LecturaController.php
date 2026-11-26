@@ -111,6 +111,10 @@ class LecturaController extends Controller
             'fechas' => $lecturasGrafica->map(fn (Lectura $lectura) => $lectura->fecha_lectura->format('d/m/Y H:i'))->all(),
             'contadores' => $contadores,
             'niveles' => array_values($series),
+            'umbrales' => [
+                'critico' => (float) config('monitoring.umbrales_nivel.critico_hasta', 10),
+                'bajo' => (float) config('monitoring.umbrales_nivel.bajo_hasta', 25),
+            ],
         ];
 
         return view('lecturas.index', [

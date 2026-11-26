@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('titulo', 'Analizar Excel histórico')
+@section('titulo', 'Analizar Excel')
 
 @section('contenido')
     <nav aria-label="breadcrumb">
@@ -10,17 +10,22 @@
         </ol>
     </nav>
 
-    <h1 class="h3 mb-3">Analizar Excel histórico</h1>
-    <div class="alert alert-info">
-        Se leerá únicamente la hoja <strong>29052025</strong>. El porcentaje actual se registra como nivel histórico al
-        31/03/2025; los valores <code>SR</code> y <code>DESC%</code> se registran como motivos al 29/05/2025.
-        En equipos de color se importan los cuatro niveles en orden negro, cian, magenta y amarillo. Las cifras
-        numéricas de consumo se omiten.
+    <h1 class="h3 mb-3">Analizar Excel</h1>
+    <div class="alert alert-info" id="ayuda-lecturas">
+        Se aceptan libros con el formato histórico usado en <strong>29052025</strong> y las variantes de
+        <strong>insumos6-10.xlsx</strong>. La hoja se identifica por sus encabezados, no por el nombre de la pestaña.
+        Se importan lecturas de porcentaje; los consumos anuales y los códigos de tóner no se cargan como inventario.
+        La impresora debe existir previamente y coincidir por nombre o IP.
     </div>
 
     <form method="POST" action="{{ route('importaciones.analizar') }}" enctype="multipart/form-data" class="card card-body">
         @csrf
         <div class="mb-3">
+            <label for="tipo_importacion" class="form-label">Tipo de importación</label>
+            <select id="tipo_importacion" name="tipo_importacion" class="form-select mb-3">
+                <option value="lecturas" @selected(old('tipo_importacion', 'lecturas') === 'lecturas')>Lecturas históricas de impresoras</option>
+                <option value="consumibles" @selected(old('tipo_importacion') === 'consumibles')>Catálogo y stock inicial de consumibles</option>
+            </select>
             <label for="archivo" class="form-label">Libro de Excel (.xlsx, máximo 10 MB)</label>
             <input id="archivo" type="file" name="archivo" accept=".xlsx"
                    class="form-control @error('archivo') is-invalid @enderror" required>
@@ -31,4 +36,13 @@
             <a href="{{ route('importaciones.index') }}" class="btn btn-outline-secondary">Cancelar</a>
         </div>
     </form>
+    <script>
+        const selectorImportacion = document.getElementById('tipo_importacion');
+        const ayudaLecturas = document.getElementById('ayuda-lecturas');
+        const actualizarAyuda = () => {
+            ayudaLecturas.hidden = selectorImportacion.value === 'consumibles';
+        };
+        selectorImportacion.addEventListener('change', actualizarAyuda);
+        actualizarAyuda();
+    </script>
 @endsection

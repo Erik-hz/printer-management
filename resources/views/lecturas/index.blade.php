@@ -21,6 +21,14 @@
                             Actualizar niveles de tinta
                         </button>
                     </form>
+                @else
+                    <form method="POST" action="{{ route('lecturas.actualizar-todas') }}">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-primary"
+                                title="Se consultarán solo las impresoras operativas que respondan por SNMP">
+                            Actualizar niveles de tinta de impresoras conectadas
+                        </button>
+                    </form>
                 @endif
                 <a href="{{ route('lecturas.create') }}" class="btn btn-primary">Nueva lectura</a>
             @endcan
@@ -261,10 +269,15 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <h3 class="h6">Niveles de consumibles</h3>
-                            <div class="lecturas-chart">
+                            <div class="lecturas-chart lecturas-chart--desplazable">
                                 <svg data-lecturas-chart="niveles" role="img"
                                      aria-label="Tendencia de niveles de consumibles por fecha"></svg>
                             </div>
+                            <p class="small text-body-secondary mt-2 mb-2">
+                                Estadísticas de las lecturas visibles. Crítico: hasta {{ number_format(config('monitoring.umbrales_nivel.critico_hasta', 10), 0) }}%;
+                                bajo: hasta {{ number_format(config('monitoring.umbrales_nivel.bajo_hasta', 25), 0) }}%.
+                            </p>
+                            <div class="table-responsive" data-levels-stats aria-live="polite"></div>
                             <div class="lecturas-chart-legend" data-chart-legend="niveles"></div>
                         </div>
                     </div>

@@ -15,6 +15,7 @@ class ArchivoImportacionRequest extends FormRequest
     {
         return [
             'archivo' => ['required', 'file', 'mimes:xlsx', 'extensions:xlsx', 'max:10240'],
+            'tipo_importacion' => ['nullable', 'in:lecturas,consumibles'],
         ];
     }
 
